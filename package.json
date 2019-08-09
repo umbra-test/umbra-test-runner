@@ -1,0 +1,55 @@
+{
+  "name": "umbra-test-runner",
+  "description": "Exposes a mechanism for running Umbra tests.",
+  "version": "0.0.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pnann/check-preconditions.git"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && rollup -c",
+    "test": "tsc -p tsconfig-tests.json && nyc mocha --require source-map-support/register --recursive lib/tests/tst/**/*.js",
+    "coveralls": "nyc report --reporter=text-lcov | coveralls"
+  },
+  "nyc": {
+    "lines": 100,
+    "statements": 100,
+    "functions": 100,
+    "branches": 100,
+    "cache": true,
+    "check-coverage": true,
+    "extension": [
+      ".ts"
+    ],
+    "exclude": [
+      "**/*.d.ts",
+      "tst",
+      "coverage"
+    ],
+    "reporter": [
+      "lcov",
+      "html"
+    ]
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/chai": "^4.1.7",
+    "@types/chai-as-promised": "^7.1.0",
+    "@types/lodash": "^4.14.136",
+    "@types/mocha": "^5.2.7",
+    "@types/sinon": "^7.0.13",
+    "@types/sinon-chai": "^3.2.2",
+    "chai": "^4.2.0",
+    "chai-as-promised": "^7.1.1",
+    "mocha": "^6.1.4",
+    "mocha-silent-reporter": "^1.0.0",
+    "nyc": "^14.1.1",
+    "rollup": "^1.16.7",
+    "rollup-plugin-terser": "^5.1.1",
+    "sinon": "^7.3.2",
+    "sinon-chai": "^3.3.0",
+    "source-map-support": "^0.5.12",
+    "ts-node": "^8.3.0",
+    "typescript": "^3.5.3"
+  }
+}
