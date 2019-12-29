@@ -13,7 +13,7 @@ const runTimeoutTests = () => {
     it("should fail if an it takes too long to execute", () => {
         const title = "timeout-exceeded";
         testRunner.it(title, (done) => {
-            setTimeout(done, 10);
+            setTimeout(done, 100);
         });
 
         return testRunner.run().then((results: RunResults) => {
@@ -98,7 +98,7 @@ describe("timeoutConfig", () => {
         testRunner = new TestRunner({timeoutMs: 1000});
         const title = "timeout-per-test";
         testRunner.it(title, (done) => {
-            setTimeout(done, 10);
+            setTimeout(done, 500);
         }, {timeoutMs: 1});
 
         return testRunner.run().then((results: RunResults) => {
@@ -152,5 +152,22 @@ describe("Additional timeout tests", function () {
             const failureInfo = results.timeoutInfo[0];
             expect(failureInfo.describeChain).to.deep.equal([firstDescribeTitle, secondDescribeTitle]);
         });
+    });
+
+    it("should not complete before valid async functions have completed", function () {
+        let timeoutElapsed = false;
+        testRunner = new TestRunner({timeoutMs: 100});
+        testRunner.it("long timeout", (done) => {
+            setTimeout(() => {
+                timeoutElapsed = true;
+                done();
+            }, 10);
+        });
+
+        return testRunner.run().then(() => {
+            if (!timeoutElapsed) {
+                throw new Error("run() should not succeed before all tests complete.");
+            }
+        })
     });
 });

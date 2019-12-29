@@ -36,7 +36,7 @@ class TimeoutPromisifier {
             timerId = setTimeout(() => {
                 const elapsedMs = Date.now() - startTime;
                 reject(new TimeoutError(`Async task timeout exceeded! Elapsed: ${elapsedMs}, timeout: ${timeoutMs}ms.`, elapsedMs, timeoutMs));
-            });
+            }, timeoutMs);
         });
 
         // timeoutPromise will never resolve, thus we can safely assume that the result is the original one.

@@ -21,7 +21,7 @@ interface EventMap {
      * Fired after a test has completed successfully. This will be fired in addition to "afterTest".
      *
      * @param title - The title for the test having been evaluated.
-     * @param durationMs - The amount of time it took the test to be evaluated.
+     * @param elapsedMs - The amount of time it took the test to be evaluated.
      */
     "testSuccess": [string, number];
     /**
@@ -29,7 +29,7 @@ interface EventMap {
      *
      * @param title - The title of the test being evaluated.
      * @param error - The error which resulted in the test failing.
-     * @param durationMs - The amount of time it took the test to be evaluated.
+     * @param elapsedMs - The amount of time it took the test to be evaluated.
      */
     "testFail": [string, Error, number];
     /**
@@ -50,7 +50,7 @@ interface EventMap {
      * Fired after all tests in a describe block have been evaluated.
      *
      * @param title - The title of the describe block having been evaluated.
-     * @param durationMs - The amount of time it took for the describe block to be fully evaluated, including any tests,
+     * @param elapsedMs - The amount of time it took for the describe block to be fully evaluated, including any tests,
      *                     setup, and before/beforeEach/after/afterEach.
      */
     "afterDescribe": [string, number];

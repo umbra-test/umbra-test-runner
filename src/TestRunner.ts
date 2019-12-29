@@ -304,7 +304,9 @@ class TestRunner {
                     this.eventEmitter.emit("beforeTest", entry.title);
                     const startTime = Date.now();
                     this.currentTest = entry;
-                    return this.timeoutPromisifier.wrap(this.asyncPromisifier.exec(entry.callback), this.getTimeoutValue("it"))
+
+                    const timeoutValue = entry.timeoutMs >= 0 ? entry.timeoutMs : this.getTimeoutValue("it");
+                    return this.timeoutPromisifier.wrap(this.asyncPromisifier.exec(entry.callback), timeoutValue)
                         .then(() => this.eventEmitter.emitAndWaitForCompletion("beforeTestSuccess", entry.title))
                         .then(() => {
                             this.runResults.totalSuccesses++;

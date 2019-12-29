@@ -31,7 +31,7 @@ class TestRunnerForTestRunner {
     private testRunnerInstance = new TestRunner();
 
     private callOrder: CallOrderExpectation[] = [];
-    private uncalled: sinon.SinonSpy[] = [];
+    private shouldNotBeCalledSpies: sinon.SinonSpy[] = [];
 
     constructor(umbraOnly = false) {
         this.umbraOnly = umbraOnly;
@@ -67,7 +67,7 @@ class TestRunnerForTestRunner {
             expect(call.spy).to.have.callCount(call.times);
         }
 
-        for (const uncalledSpy of this.uncalled) {
+        for (const uncalledSpy of this.shouldNotBeCalledSpies) {
             expect(uncalledSpy).to.not.been.called;
         }
     };
@@ -97,7 +97,7 @@ class TestRunnerForTestRunner {
             });
 
             if (order === null) {
-                this.uncalled.push(runnerSpy);
+                this.shouldNotBeCalledSpies.push(runnerSpy);
             } else {
                 this.callOrder[order] = {
                     label: title,
