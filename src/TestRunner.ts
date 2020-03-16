@@ -198,7 +198,7 @@ class TestRunner {
 
     cancel(): Promise<RunResults> {
         if (!this.currentRun) {
-            return;
+            return Promise.reject(new Error("Not currently executing a test run! Unable to cancel accordingly."));
         }
 
         this.testRunCancelled = true;
@@ -255,7 +255,7 @@ class TestRunner {
 
             promise = promise.then(() => {
                 if (this.testRunCancelled) {
-                    return;
+                    return Promise.resolve();
                 }
                 if (entry.type === "describe") {
                     return this.evaluateDescribe(queue, entry);
@@ -271,6 +271,8 @@ class TestRunner {
         return promise.then(() => {
             if (evaluatedTest) {
                 return this.evaluateQueueWithTimeout("after")
+            } else {
+                return Promise.resolve();
             }
         });
     };

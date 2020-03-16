@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "noImplicitAny": false,
+    "noImplicitReturns": true,
+    "strict": true,
+    "noImplicitThis": true,
+    "strictNullChecks": false,
+    "strictFunctionTypes": true,
+    "strictPropertyInitialization": false,
+    "removeComments": true,
+    "preserveConstEnums": true,
+    "sourceMap": true,
+    "target": "es6",
+    "outDir": "lib/tests",
+    "declaration": false
+  },
+  "include": [
+    "tst"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

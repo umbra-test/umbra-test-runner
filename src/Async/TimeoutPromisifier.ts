@@ -44,7 +44,7 @@ class TimeoutPromisifier {
         });
 
         // timeoutPromise will never resolve, thus we can safely assume that the result is the original one.
-        return Promise.race([promise, timeoutPromise]).then((result: void | T) => {
+        return Promise.race([promise, timeoutPromise]).then((result: unknown) => {
             clearTimeout(timerId);
             return result as T;
         });

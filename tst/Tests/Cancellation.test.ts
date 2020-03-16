@@ -17,7 +17,7 @@ describe("Test Cancellation", () => {
     });
 
     it("calling cancel does nothing if there are no tests", () => {
-        testRunner.cancel();
+        return expect(testRunner.cancel()).to.eventually.be.rejected;
     });
 
     it("should stop executing after the current test", () => {
