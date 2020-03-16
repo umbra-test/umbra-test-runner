@@ -6,6 +6,13 @@
 interface EventMap {
 
     /**
+     * Fired before the file source for the test changes.
+     *
+     * @param path - The absolute path of the next file containing the next function to be executed.
+     */
+    "activeFileChanged": [string];
+
+    /**
      * Fired before every test is evaluated.
      *
      * @param title - The title of the test being evaluated.

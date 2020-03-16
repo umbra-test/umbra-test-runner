@@ -26,9 +26,16 @@ declare class TestRunner {
     private hasAnOnlyIt;
     private currentTest;
     private testRunCancelled;
+    private currentlyExecutingFilePath;
+    private lastFilePathSet;
     private currentRun;
     private runResults;
     constructor(config?: TestRunnerConfig, eventEmitter?: SimpleEventEmitter<EventMap>);
+    /**
+     * Sets the current file name for all subsequent calls to describe/it/etc. This is used for logging where tests
+     * are sourced from.
+     */
+    setCurrentFile(absolutePath: string): void;
     on<Event extends keyof EventMap>(event: Event, callback: EventCallback<EventMap, Event>): void;
     once<Event extends keyof EventMap>(event: Event, callback: EventCallback<EventMap, Event>): void;
     off<Event extends keyof EventMap>(event: Event, callback: EventCallback<EventMap, Event>): void;

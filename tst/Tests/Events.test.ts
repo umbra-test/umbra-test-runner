@@ -225,7 +225,6 @@ describe("Events", () => {
             const eventSpy = sinon.spy();
             testRunner.on("testFail", eventSpy);
 
-
             return testRunner.run().catch(() => {
                 expect(eventSpy).to.have.been.calledWith(expectedTitleA, expectedErrorA);
                 expect(eventSpy).to.not.have.been.calledWith(expectedTitleB, expectedErrorB);
@@ -233,33 +232,35 @@ describe("Events", () => {
         });
     });
 
-    describe("testTimeout", () => {
-        it("should be emitted only for tests that timeout", () => {
+    describe("activeFileChanged", () => {
+        const fileA = "fileA";
+        const fileB = "fileB";
 
+        it("should be fired when the active file is set initially", function () {
+            testRunner.setCurrentFile(fileA);
+
+            const testSpy = sinon.spy();
+            testRunner.it("test-fileA", testSpy);
+
+            const eventSpy = sinon.spy();
+            testRunner.on("activeFileChanged", eventSpy);
+
+            return testRunner.run().then(() => {
+                expect(eventSpy).to.have.been.calledWith(fileA);
+            });
         });
 
-        it("should be emitted for every timing out test", () => {
+        it("should be fired when it changes", function () {
+            testRunner.setCurrentFile(fileB);
 
-        });
-    });
+            testRunner.it("test-fileB", sinon.spy());
 
-    describe("beforeDescribe", () => {
-        it("should be emitted before a describe is evaluated", () => {
+            const eventSpy = sinon.spy();
+            testRunner.on("activeFileChanged", eventSpy);
 
-        });
-
-        it("should be emitted for every describe", () => {
-
-        });
-    });
-
-    describe("afterDescribe", () => {
-        it("should be emitted after a describe is evaluated (and all its tests too)", () => {
-
-        });
-
-        it("should should be emitted for every describe", () => {
-
+            return testRunner.run().then(() => {
+                expect(eventSpy).to.have.been.calledWith(fileB);
+            });
         });
     });
 });

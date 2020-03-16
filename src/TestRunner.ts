@@ -10,6 +10,7 @@ import {EventCallback, SimpleEventEmitter} from "./EventEmitter/SimpleEventEmitt
 
 interface TestEntry extends TestInfo {
     type: "describe" | "it";
+    absoluteFilePath: string | undefined;
 }
 
 interface TestQueue {
@@ -57,6 +58,9 @@ class TestRunner {
     private currentTest: TestEntry | null = null;
     private testRunCancelled: boolean = false;
 
+    private currentlyExecutingFilePath: string;
+    private lastFilePathSet: string;
+
     private currentRun: Promise<RunResults>;
     private runResults: RunResults;
 
@@ -68,6 +72,14 @@ class TestRunner {
         this.describe.only = this.describeOnly;
 
         this.resetRunResults();
+    }
+
+    /**
+     * Sets the current file name for all subsequent calls to describe/it/etc. This is used for logging where tests
+     * are sourced from.
+     */
+    setCurrentFile(absolutePath: string): void {
+        this.lastFilePathSet = absolutePath;
     }
 
     on<Event extends keyof EventMap>(event: Event, callback: EventCallback<EventMap, Event>): void {
@@ -210,7 +222,8 @@ class TestRunner {
         const testEntry: TestEntry = {
             title: title,
             type: type,
-            callback: execBlock
+            callback: execBlock,
+            absoluteFilePath: this.lastFilePathSet
         };
 
         if (only) {
@@ -235,6 +248,10 @@ class TestRunner {
         let promise = Promise.resolve();
         for (let i = 0; i < queue.tests.length; i++) {
             const entry = queue.tests[i];
+            if (entry.absoluteFilePath !== this.currentlyExecutingFilePath) {
+                this.currentlyExecutingFilePath = entry.absoluteFilePath;
+                this.eventEmitter.emit("activeFileChanged", this.currentlyExecutingFilePath);
+            }
 
             promise = promise.then(() => {
                 if (this.testRunCancelled) {
