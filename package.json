@@ -1,10 +1,10 @@
 {
-  "name": "umbra-test-runner",
+  "name": "@umbra-test/umbra-test-runner",
   "description": "Exposes a mechanism for running Umbra tests.",
   "version": "0.0.1",
   "repository": {
     "type": "git",
-    "url": "https://github.com/umbra-test/umbra-test-runner.git"
+    "url": "git+https://github.com/umbra-test/umbra-test-runner.git"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json && rollup -c",
@@ -37,7 +37,9 @@
       "html"
     ]
   },
-  "dependencies": {},
+  "dependencies": {
+    "@umbra-test/umbra-util": "0.0.1"
+  },
   "devDependencies": {
     "@types/chai": "^4.2.11",
     "@types/chai-as-promised": "^7.1.2",
@@ -58,5 +60,14 @@
     "source-map-support": "^0.5.16",
     "ts-node": "^8.6.2",
     "typescript": "^3.8.3"
-  }
+  },
+  "bugs": {
+    "url": "https://github.com/umbra-test/umbra-test-runner/issues"
+  },
+  "homepage": "https://github.com/umbra-test/umbra-test-runner#readme",
+  "directories": {
+    "lib": "lib"
+  },
+  "author": "umbra-test authors",
+  "license": "MIT"
 }
