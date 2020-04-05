@@ -153,11 +153,14 @@ class TestRunner {
 
         this.currentRun = this.runNextTestQueue().then(() => {
             const results = this.runResults;
-            this.resetRunResults();
-
-            return results;
-        }).finally(() => {
             this.currentRun = null;
+
+            this.resetRunResults();
+            return results;
+        }).catch((e) => {
+            this.currentRun = null;
+
+            throw e;
         });
 
         return this.currentRun;
@@ -359,9 +362,15 @@ class TestRunner {
                             }
                         })
                         .then(() => this.evaluateQueueWithTimeout("afterEach"))
-                        .finally(() => {
+                        .then(() => {
                             this.runResults.totalTests++;
                             this.currentTest = null;
+                        })
+                        .catch((e) => {
+                            this.runResults.totalTests++;
+                            this.currentTest = null;
+
+                            throw e;
                         });
                 }
             )).then(() => true);
