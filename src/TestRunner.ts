@@ -327,6 +327,7 @@ class TestRunner {
                     const startTime = Date.now();
                     this.currentTest = entry;
 
+                    Object.defineProperty(entry.callback, "name", { value: "Test: " + entry.title, writable: false });
                     const timeoutValue = entry.timeoutMs >= 0 ? entry.timeoutMs : this.getTimeoutValue("it");
                     return this.timeoutPromisifier.wrap(this.asyncPromisifier.exec(entry.callback), timeoutValue)
                         .then(() => this.eventEmitter.emitAndWaitForCompletion("beforeTestSuccess", entry.title))

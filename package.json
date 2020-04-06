@@ -7,8 +7,8 @@
     "url": "git+https://github.com/umbra-test/umbra-test-runner.git"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json && rollup -c",
-    "test": "tsc -p tsconfig-test.json && nyc mocha --require source-map-support/register --recursive lib/tests/tst/**/*.js",
+    "build": "tsc -p tsconfig.json && npx rollup -c",
+    "test": "tsc -p tsconfig-test.json && npx nyc mocha --require source-map-support/register --recursive lib/tests/tst/**/*.js",
     "lint": "tslint --project .",
     "coveralls": "nyc report --reporter=text-lcov | coveralls",
     "all": "npm run build && npm run test && npm run lint && npm run coveralls"
@@ -52,7 +52,7 @@
     "chai-as-promised": "^7.1.1",
     "mocha": "^7.1.0",
     "mocha-silent-reporter": "^1.0.0",
-    "nyc": "next",
+    "nyc": "^15.0.0",
     "rollup": "^2.0.6",
     "rollup-plugin-terser": "^5.3.0",
     "sinon": "^9.0.1",
