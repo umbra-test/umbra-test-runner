@@ -148,8 +148,10 @@ class TestRunner {
             throw new Error("Can't start a test run if one is already in progress!");
         }
 
+        const startTime = Date.now();
         this.currentRun = this.runNextTestQueue().then(() => {
             const results = this.runResults;
+            results.elapsedTimeMs = Date.now() - startTime;
             this.currentRun = null;
 
             this.resetRunResults();
