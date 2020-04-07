@@ -5,7 +5,8 @@ export default [{
     output: [{
         file: "lib/index.cjs.js",
         format: "cjs",
-        interop: false
+        interop: false,
+        sourcemap: "inline"
     }, {
         file: "lib/index.esm.js",
         format: "es"

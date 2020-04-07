@@ -29,22 +29,25 @@ describe("only", () => {
             children: [{
                 type: "it.only",
                 order: 1
+            }, {
+                type: "it",
+                order: null
             }]
         }, {
             type: "it",
-            order: null
+            order: 2
         });
 
         runTests("should run an it.only if its outside of a describe block with an it inside", {
             type: "describe",
-            order: 0,
+            order: null,
             children: [{
                 type: "it",
                 order: null
             }]
         }, {
             type: "it.only",
-            order: 1
+            order: 0
         });
 
     });
@@ -63,6 +66,25 @@ describe("only", () => {
             order: null
         });
 
+        runTests("should only run the first describe.only if there are multiple of them", {
+            type: "describe.only",
+            order: 0
+        }, {
+            type: "describe.only",
+            order: null
+        });
+
+        runTests("should only run the first describe.only if there are multiple of them, out of order", {
+            type: "describe",
+            order: null
+        }, {
+            type: "describe.only",
+            order: 0
+        }, {
+            type: "describe.only",
+            order: null
+        });
+
         runTests("should run combinations of it.only and describe.only, but not describe and its", {
             type: "describe.only",
             order: 0,
@@ -78,7 +100,7 @@ describe("only", () => {
             order: null
         }, {
             type: "it.only",
-            order: 2
+            order: null
         });
     });
 });

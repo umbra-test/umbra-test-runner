@@ -29,18 +29,4 @@ describe("GetCurrentTestInfo", function () {
             expect(runResults.totalSuccesses).to.equal(1);
         });
     });
-
-    it("should return teh current test info for only entries as well", function () {
-        const title = "random-test-title-2";
-        testRunner.it.only(title, () => {
-            const testInfo = testRunner.getCurrentTestInfo();
-            expect(testInfo.title).to.equal(title);
-            expect(testInfo.only).to.equal(true);
-        });
-
-        return testRunner.run().then((runResults) => {
-            expect(runResults.totalSuccesses).to.equal(1);
-        });
-    });
-
 });

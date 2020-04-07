@@ -22,8 +22,6 @@ declare class TestRunner {
     private readonly config;
     private testQueueStack;
     private queueStacks;
-    private hasAnOnlyDescribe;
-    private hasAnOnlyIt;
     private currentTest;
     private testRunCancelled;
     private currentlyExecutingFilePath;

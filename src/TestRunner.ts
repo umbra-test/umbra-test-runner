@@ -17,6 +17,7 @@ interface TestQueue {
     titleChain: string[];
     tests: TestEntry[];
     evaluatedBefores: boolean;
+    firstOnlyIndex: null | number;
 }
 
 type QueueStackType = "before" | "beforeEach" | "after" | "afterEach";
@@ -53,8 +54,6 @@ class TestRunner {
         "afterEach": [[]]
     };
 
-    private hasAnOnlyDescribe: boolean = false;
-    private hasAnOnlyIt: boolean = false;
     private currentTest: TestEntry | null = null;
     private testRunCancelled: boolean = false;
 
@@ -102,7 +101,6 @@ class TestRunner {
 
     private describeOnly = (title: string, execBlock: (done?: (result?: Error | any) => void) => Promise<Error | any> | any): void => {
         this.throwIfTestInProgress("describe.only");
-        this.hasAnOnlyDescribe = true;
         this.pushToCurrentTestQueue("describe", title, execBlock, true);
     };
 
@@ -113,7 +111,6 @@ class TestRunner {
 
     private itOnly = (title: string, execBlock: (done?: (result?: Error | any) => void) => Promise<Error | any> | any, options?: Partial<ItOptions>): void => {
         this.throwIfTestInProgress("it.only");
-        this.hasAnOnlyIt = true;
         this.pushToCurrentTestQueue("it", title, execBlock, true, options ? options.timeoutMs : undefined);
     };
 
@@ -191,8 +188,6 @@ class TestRunner {
 
         this.resetRunResults();
         this.testRunCancelled = false;
-        this.hasAnOnlyIt = false;
-        this.hasAnOnlyDescribe = false;
         this.testQueueStack = [];
         for (const type of QueueStackTypes) {
             this.queueStacks[type] = [[]];
@@ -216,7 +211,8 @@ class TestRunner {
             const testQueue: TestQueue = {
                 titleChain: [],
                 tests: [],
-                evaluatedBefores: false
+                evaluatedBefores: false,
+                firstOnlyIndex: only ? 0 : null
             };
             this.testQueueStack.push(testQueue);
         }
@@ -229,8 +225,8 @@ class TestRunner {
             absoluteFilePath: this.lastFilePathSet
         };
 
-        if (only) {
-            testEntry.only = only;
+        if (only && currentEntry.firstOnlyIndex === null) {
+            currentEntry.firstOnlyIndex = currentEntry.tests.length;
         }
 
         if (timeoutMs > 0) {
@@ -246,21 +242,18 @@ class TestRunner {
         }
 
         const queue = this.testQueueStack.shift();
-        let evaluatedTest = false;
 
-        let promise = Promise.resolve();
-        for (let i = 0; i < queue.tests.length; i++) {
-            const entry = queue.tests[i];
+        let evaluatedTest = false;
+        const getTestExec = (queue: TestQueue, entry: TestEntry): () => Promise<void> => {
             if (entry.absoluteFilePath !== this.currentlyExecutingFilePath) {
                 this.currentlyExecutingFilePath = entry.absoluteFilePath;
                 this.eventEmitter.emit("activeFileChanged", this.currentlyExecutingFilePath);
             }
 
-            promise = promise.then(() => {
+            return () => {
                 if (this.testRunCancelled) {
                     return Promise.resolve();
-                }
-                if (entry.type === "describe") {
+                } else if (entry.type === "describe") {
                     return this.evaluateDescribe(queue, entry);
                 } else {
                     return this.evaluateTest(queue, entry)
@@ -268,7 +261,16 @@ class TestRunner {
                             evaluatedTest = evaluatedATest;
                         });
                 }
-            });
+            }
+        };
+
+        if (queue.firstOnlyIndex !== null) {
+            return getTestExec(queue, queue.tests[queue.firstOnlyIndex])();
+        }
+
+        let promise = Promise.resolve();
+        for (let i = 0; i < queue.tests.length; i++) {
+            promise = promise.then(getTestExec(queue, queue.tests[i]));
         }
 
         return promise.then(() => {
@@ -281,14 +283,11 @@ class TestRunner {
     };
 
     private evaluateDescribe(queue: TestQueue, entry: TestEntry): Promise<void> {
-        if (this.hasAnOnlyDescribe && !entry.only) {
-            return Promise.resolve();
-        }
-
         this.testQueueStack.push({
             titleChain: [].concat(queue.titleChain, entry.title),
             tests: [],
-            evaluatedBefores: false
+            evaluatedBefores: false,
+            firstOnlyIndex: null
         });
 
         for (const type of QueueStackTypes) {
@@ -311,10 +310,6 @@ class TestRunner {
     }
 
     private evaluateTest(queue: TestQueue, entry: TestEntry): Promise<boolean> {
-        if (this.hasAnOnlyIt && !entry.only) {
-            return Promise.resolve(false);
-        }
-
         let promise = Promise.resolve();
         if (!queue.evaluatedBefores) {
             queue.evaluatedBefores = true;

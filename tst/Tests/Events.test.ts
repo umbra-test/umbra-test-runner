@@ -142,8 +142,7 @@ describe("Events", () => {
 
         it("should allow transforming a successful test into a failing one via returning a rejected Promise", () => {
             const error = new Error("success->error");
-            const eventSpy = sinon.stub().returns(Promise.reject(error));
-            testRunner.on("beforeTestSuccess", eventSpy);
+            testRunner.on("beforeTestSuccess", () => Promise.reject(error));
 
             const successSpy = sinon.spy();
             testRunner.on("testSuccess", successSpy);
