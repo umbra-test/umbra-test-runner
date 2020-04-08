@@ -265,7 +265,7 @@ class TestRunner {
             evaluatedTest = await this.executeTest(queue, queue.tests[queue.firstOnlyIndex]);
         } else {
             for (let i = 0; i < queue.tests.length; i++) {
-                evaluatedTest = evaluatedTest || await this.executeTest(queue, queue.tests[i]);
+                evaluatedTest = await this.executeTest(queue, queue.tests[i]) || evaluatedTest;
             }
         }
 
