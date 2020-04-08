@@ -14,12 +14,12 @@ describe("AsyncPromisifier", () => {
         results = {};
     });
 
-    const expectSuccess = (fn, expectedResult) => {
-        return expect(promisifier.exec(fn)).to.eventually.equal(expectedResult);
+    const expectSuccess = (fn, expectedResult: any, name: string = "name") => {
+        return expect(promisifier.exec(fn, name)).to.eventually.equal(expectedResult);
     };
 
-    const expectFailure = (fn, expectedResult) => {
-        return expect(promisifier.exec(fn)).to.eventually.be.rejectedWith(expectedResult);
+    const expectFailure = (fn, expectedResult: any, name: string = "name") => {
+        return expect(promisifier.exec(fn, name)).to.eventually.be.rejectedWith(expectedResult);
     };
 
     describe("synchronous results", () => {
@@ -76,6 +76,17 @@ describe("AsyncPromisifier", () => {
             };
 
             return expectFailure(fn, error);
+        });
+    });
+
+    describe("naming", () => {
+        it("should name the function based on the provided param", () => {
+            const expectedResult = 1701;
+            const fn = () => expectedResult;
+            const expectedName = "expectedName";
+            const promise = expectSuccess(fn, expectedResult, expectedName);
+            expect(fn["name"]).to.equal(expectedName);
+            return promise;
         });
     });
 });

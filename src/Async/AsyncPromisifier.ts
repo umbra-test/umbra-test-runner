@@ -26,8 +26,9 @@ class AsyncPromisifier {
      * @param {(done) => any} fn
      * @returns {Promise<T>}
      */
-    exec<T>(fn: SyncCallback<T> | AsyncCallback<T> | PromiseCallback<T>): Promise<T> {
+    exec<T>(fn: SyncCallback<T> | AsyncCallback<T> | PromiseCallback<T>, name: string): Promise<T> {
 
+        Object.defineProperty(fn, "name", { value: name, writable: false });
         /*
          * 2nd param is "done" -- if the user fn has exactly two params then it is expected that they are using a
          * classic asynchronous function and will call "done" when complete.

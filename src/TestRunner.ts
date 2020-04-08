@@ -315,7 +315,7 @@ class TestRunner {
         this.eventEmitter.emit("beforeDescribe", entry.title);
 
         const startTime = Date.now();
-        return this.asyncPromisifier.exec(entry.callback)
+        return this.asyncPromisifier.exec(entry.callback, "describe")
             .then(this.runNextTestQueue)
             .then(() => {
                 for (const type of QueueStackTypes) {
@@ -345,9 +345,8 @@ class TestRunner {
                     const startTime = Date.now();
                     this.currentTest = entry;
 
-                    Object.defineProperty(entry.callback, "name", {value: "Test: " + entry.title, writable: false});
                     const timeoutValue = entry.timeoutMs >= 0 ? entry.timeoutMs : this.getTimeoutValue("it");
-                    return this.timeoutPromisifier.wrap(this.asyncPromisifier.exec(entry.callback), timeoutValue)
+                    return this.timeoutPromisifier.wrap(this.asyncPromisifier.exec(entry.callback, "Test: " + entry.title), timeoutValue)
                         .then(() => this.eventEmitter.emitAndWaitForCompletion("beforeTestSuccess", entry.title))
                         .then(() => {
                             this.runResults.totalSuccesses++;
@@ -408,7 +407,7 @@ class TestRunner {
             for (let i = 0; i < queueStack.length; i++) {
                 const queue = queueStack[i];
                 for (let j = 0; j < queue.length; j++) {
-                    promise = promise.then(() => this.asyncPromisifier.exec(queue[j]));
+                    promise = promise.then(() => this.asyncPromisifier.exec(queue[j], type));
                 }
             }
         } else {
@@ -416,7 +415,7 @@ class TestRunner {
             for (let i = queueStack.length - 1; i >= 0; i--) {
                 const queue = queueStack[i];
                 for (let j = queue.length - 1; j >= 0; j--) {
-                    promise = promise.then(() => this.asyncPromisifier.exec(queue[j]));
+                    promise = promise.then(() => this.asyncPromisifier.exec(queue[j], type));
                 }
             }
         }
