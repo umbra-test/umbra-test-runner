@@ -48,10 +48,10 @@ class TestRunner {
 
     private testQueueStack: TestQueue[] = [];
     private queueStacks: { [key: string]: (() => void)[][] } = {
-        "before": [[]],
-        "beforeEach": [[]],
-        "after": [[]],
-        "afterEach": [[]]
+        "before": [],
+        "beforeEach": [],
+        "after": [],
+        "afterEach": []
     };
 
     private currentTest: TestEntry | null = null;
@@ -117,25 +117,41 @@ class TestRunner {
     before(execBlock: (done?: (result?: Error | any) => void) => Promise<Error | any> | any) {
         this.throwIfTestInProgress("before");
         const beforeQueueStack = this.queueStacks["before"];
-        beforeQueueStack[0].push(execBlock);
+        if (beforeQueueStack.length === 0) {
+            beforeQueueStack.push([execBlock]);
+        } else {
+            beforeQueueStack[0].push(execBlock);
+        }
     }
 
     beforeEach(execBlock: (done?: (result?: Error | any) => void) => Promise<Error | any> | any) {
         this.throwIfTestInProgress("beforeEach");
         const beforeEachQueueStack = this.queueStacks["beforeEach"];
-        beforeEachQueueStack[0].push(execBlock);
+        if (beforeEachQueueStack.length === 0) {
+            beforeEachQueueStack.push([execBlock]);
+        } else {
+            beforeEachQueueStack[0].push(execBlock);
+        }
     }
 
     after(execBlock: (done?: (result?: Error | any) => void) => Promise<Error | any> | any) {
         this.throwIfTestInProgress("after");
         const afterQueueStack = this.queueStacks["after"];
-        afterQueueStack[0].push(execBlock);
+        if (afterQueueStack.length === 0) {
+            afterQueueStack.push([execBlock]);
+        } else {
+            afterQueueStack[0].push(execBlock);
+        }
     }
 
     afterEach(execBlock: (done?: (result?: Error | any) => void) => Promise<Error | any> | any) {
         this.throwIfTestInProgress("afterEach");
         const afterEachQueueStack = this.queueStacks["afterEach"];
-        afterEachQueueStack[0].push(execBlock);
+        if (afterEachQueueStack.length === 0) {
+            afterEachQueueStack.push([execBlock]);
+        } else {
+            afterEachQueueStack[0].push(execBlock);
+        }
     }
 
     /**
@@ -277,7 +293,7 @@ class TestRunner {
 
         return promise.then(() => {
             if (evaluatedTest) {
-                return this.evaluateQueueWithTimeout("after")
+                return this.evaluateQueueWithTimeout("after");
             } else {
                 return Promise.resolve();
             }
@@ -303,7 +319,12 @@ class TestRunner {
             .then(this.runNextTestQueue)
             .then(() => {
                 for (const type of QueueStackTypes) {
-                    this.queueStacks[type].shift();
+                    // Befores operate outside-in, first-last.
+                    if (type === "before" || type === "beforeEach") {
+                        this.queueStacks[type].pop();
+                    } else {
+                        this.queueStacks[type].shift();
+                    }
                 }
 
                 const describeDurationMs = Date.now() - startTime;
@@ -324,7 +345,7 @@ class TestRunner {
                     const startTime = Date.now();
                     this.currentTest = entry;
 
-                    Object.defineProperty(entry.callback, "name", { value: "Test: " + entry.title, writable: false });
+                    Object.defineProperty(entry.callback, "name", {value: "Test: " + entry.title, writable: false});
                     const timeoutValue = entry.timeoutMs >= 0 ? entry.timeoutMs : this.getTimeoutValue("it");
                     return this.timeoutPromisifier.wrap(this.asyncPromisifier.exec(entry.callback), timeoutValue)
                         .then(() => this.eventEmitter.emitAndWaitForCompletion("beforeTestSuccess", entry.title))
