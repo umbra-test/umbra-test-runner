@@ -7,14 +7,13 @@
     "url": "git+https://github.com/umbra-test/umbra-test-runner.git"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json && npx rollup -c",
+    "build": "tsc -p tsconfig.json",
     "test": "tsc -p tsconfig-test.json && npx nyc mocha --require source-map-support/register --recursive lib/tests/tst/**/*.js",
     "lint": "tslint --project .",
     "coveralls": "nyc report --reporter=text-lcov | coveralls",
     "all": "npm run build && npm run test && npm run lint && npm run coveralls"
   },
-  "main": "lib/index.cjs.js",
-  "module": "lib/index.esm.js",
+  "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "nyc": {
     "lines": 100,
