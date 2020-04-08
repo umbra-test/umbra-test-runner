@@ -66,6 +66,7 @@ declare class TestRunner {
     cancel(): Promise<RunResults>;
     private pushToCurrentTestQueue;
     private runNextTestQueue;
+    private executeTest;
     private evaluateDescribe;
     private evaluateTest;
     private evaluateQueueWithTimeout;

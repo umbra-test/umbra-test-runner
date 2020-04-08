@@ -254,53 +254,43 @@ class TestRunner {
         currentEntry.tests.push(testEntry);
     }
 
-    private runNextTestQueue = (): Promise<void> => {
+    private runNextTestQueue = async (): Promise<void> => {
         if (this.testQueueStack.length === 0) {
-            return Promise.resolve();
+            return;
         }
-
-        const queue = this.testQueueStack.shift();
 
         let evaluatedTest = false;
-        const getTestExec = (queue: TestQueue, entry: TestEntry): () => Promise<void> => {
-            if (entry.absoluteFilePath !== this.currentlyExecutingFilePath) {
-                this.currentlyExecutingFilePath = entry.absoluteFilePath;
-                this.eventEmitter.emit("activeFileChanged", this.currentlyExecutingFilePath);
-            }
-
-            return () => {
-                if (this.testRunCancelled) {
-                    return Promise.resolve();
-                } else if (entry.type === "describe") {
-                    return this.evaluateDescribe(queue, entry);
-                } else {
-                    return this.evaluateTest(queue, entry)
-                        .then((evaluatedATest: boolean) => {
-                            evaluatedTest = evaluatedATest;
-                        });
-                }
-            }
-        };
-
+        const queue = this.testQueueStack.shift();
         if (queue.firstOnlyIndex !== null) {
-            return getTestExec(queue, queue.tests[queue.firstOnlyIndex])();
-        }
-
-        let promise = Promise.resolve();
-        for (let i = 0; i < queue.tests.length; i++) {
-            promise = promise.then(getTestExec(queue, queue.tests[i]));
-        }
-
-        return promise.then(() => {
-            if (evaluatedTest) {
-                return this.evaluateQueueWithTimeout("after");
-            } else {
-                return Promise.resolve();
+            evaluatedTest = await this.executeTest(queue, queue.tests[queue.firstOnlyIndex]);
+        } else {
+            for (let i = 0; i < queue.tests.length; i++) {
+                const testExecuted = await this.executeTest(queue, queue.tests[i]);
+                evaluatedTest = evaluatedTest || testExecuted;
             }
-        });
+        }
+
+        if (evaluatedTest) {
+            await this.evaluateQueueWithTimeout("after");
+        }
     };
 
-    private evaluateDescribe(queue: TestQueue, entry: TestEntry): Promise<void> {
+    private async executeTest(queue: TestQueue, entry: TestEntry): Promise<boolean> {
+        if (entry.absoluteFilePath !== this.currentlyExecutingFilePath) {
+            this.currentlyExecutingFilePath = entry.absoluteFilePath;
+            this.eventEmitter.emit("activeFileChanged", this.currentlyExecutingFilePath);
+        }
+
+        if (this.testRunCancelled) {
+            return false;
+        } else if (entry.type === "describe") {
+            return this.evaluateDescribe(queue, entry);
+        } else {
+            return this.evaluateTest(queue, entry);
+        }
+    }
+
+    private async evaluateDescribe(queue: TestQueue, entry: TestEntry): Promise<boolean> {
         this.testQueueStack.push({
             titleChain: [].concat(queue.titleChain, entry.title),
             tests: [],
@@ -315,31 +305,31 @@ class TestRunner {
         this.eventEmitter.emit("beforeDescribe", entry.title);
 
         const startTime = Date.now();
-        return this.asyncPromisifier.exec(entry.callback, "describe")
-            .then(this.runNextTestQueue)
-            .then(() => {
-                for (const type of QueueStackTypes) {
-                    // Befores operate outside-in, first-last.
-                    if (type === "before" || type === "beforeEach") {
-                        this.queueStacks[type].pop();
-                    } else {
-                        this.queueStacks[type].shift();
-                    }
-                }
+        await this.asyncPromisifier.exec(entry.callback, "describe");
+        await this.runNextTestQueue();
 
-                const describeDurationMs = Date.now() - startTime;
-                this.eventEmitter.emit("afterDescribe", entry.title, describeDurationMs);
-            });
-    }
-
-    private evaluateTest(queue: TestQueue, entry: TestEntry): Promise<boolean> {
-        let promise = Promise.resolve();
-        if (!queue.evaluatedBefores) {
-            queue.evaluatedBefores = true;
-            promise = promise.then(() => this.evaluateQueueWithTimeout("before"));
+        for (const type of QueueStackTypes) {
+            // Befores operate outside-in, first-last.
+            if (type === "before" || type === "beforeEach") {
+                this.queueStacks[type].pop();
+            } else {
+                this.queueStacks[type].shift();
+            }
         }
 
-        return promise.then(() => this.evaluateQueueWithTimeout("beforeEach")
+        const describeDurationMs = Date.now() - startTime;
+        this.eventEmitter.emit("afterDescribe", entry.title, describeDurationMs);
+
+        return false;
+    }
+
+    private async evaluateTest(queue: TestQueue, entry: TestEntry): Promise<boolean> {
+        if (!queue.evaluatedBefores) {
+            queue.evaluatedBefores = true;
+            await this.evaluateQueueWithTimeout("before");
+        }
+
+        return this.evaluateQueueWithTimeout("beforeEach")
             .then(() => {
                     this.eventEmitter.emit("beforeTest", entry.title);
                     const startTime = Date.now();
@@ -391,7 +381,7 @@ class TestRunner {
                             throw e;
                         });
                 }
-            )).then(() => true);
+            ).then(() => true);
     }
 
     private evaluateQueueWithTimeout(type: QueueStackType): Promise<void> {
