@@ -69,6 +69,7 @@ declare class TestRunner {
     private executeTest;
     private evaluateDescribe;
     private evaluateTest;
+    private executeTestCallback;
     private evaluateQueueWithTimeout;
     private evaluateQueue;
     private getTimeoutValue;

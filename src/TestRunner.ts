@@ -265,8 +265,7 @@ class TestRunner {
             evaluatedTest = await this.executeTest(queue, queue.tests[queue.firstOnlyIndex]);
         } else {
             for (let i = 0; i < queue.tests.length; i++) {
-                const testExecuted = await this.executeTest(queue, queue.tests[i]);
-                evaluatedTest = evaluatedTest || testExecuted;
+                evaluatedTest = evaluatedTest || await this.executeTest(queue, queue.tests[i]);
             }
         }
 
@@ -329,59 +328,59 @@ class TestRunner {
             await this.evaluateQueueWithTimeout("before");
         }
 
-        return this.evaluateQueueWithTimeout("beforeEach")
-            .then(() => {
-                    this.eventEmitter.emit("beforeTest", entry.title);
-                    const startTime = Date.now();
-                    this.currentTest = entry;
+        await this.evaluateQueueWithTimeout("beforeEach");
 
-                    const timeoutValue = entry.timeoutMs >= 0 ? entry.timeoutMs : this.getTimeoutValue("it");
-                    return this.timeoutPromisifier.wrap(this.asyncPromisifier.exec(entry.callback, "Test: " + entry.title), timeoutValue)
-                        .then(() => this.eventEmitter.emitAndWaitForCompletion("beforeTestSuccess", entry.title))
-                        .then(() => {
-                            this.runResults.totalSuccesses++;
+        this.eventEmitter.emit("beforeTest", entry.title);
+        this.currentTest = entry;
 
-                            const testDurationMs = Date.now() - startTime;
-                            this.eventEmitter.emit("testSuccess", entry.title, testDurationMs);
-                        })
-                        .catch((error: Error) => {
-                            if (error instanceof TimeoutError) {
-                                this.runResults.totalTimeouts++;
-                                this.runResults.timeoutInfo.push({
-                                    describeChain: queue.titleChain,
-                                    title: entry.title,
-                                    elapsedMs: error.elapsedMs,
-                                    timeoutMs: error.timeoutMs
-                                });
-                                this.eventEmitter.emit("testTimeout", entry.title, error.elapsedMs, error.timeoutMs);
-                            } else {
-                                this.runResults.totalFailures++;
-                                this.runResults.failureInfo.push({
-                                    describeChain: queue.titleChain,
-                                    title: entry.title,
-                                    error: error
-                                });
-                                this.eventEmitter.emit("testFail", entry.title, error, Date.now() - startTime);
-                            }
+        try {
+            await this.executeTestCallback(entry, queue.titleChain);
+            await this.evaluateQueueWithTimeout("afterEach");
+        } finally {
+            this.runResults.totalTests++;
+            this.currentTest = null;
+        }
 
-                            // If we want to stop additional execution on the first fail, just cancel the rest of the run.
-                            if (this.config.stopOnFirstFail) {
-                                this.testRunCancelled = true;
-                            }
-                        })
-                        .then(() => this.evaluateQueueWithTimeout("afterEach"))
-                        .then(() => {
-                            this.runResults.totalTests++;
-                            this.currentTest = null;
-                        })
-                        .catch((e) => {
-                            this.runResults.totalTests++;
-                            this.currentTest = null;
+        return true;
+    }
 
-                            throw e;
-                        });
-                }
-            ).then(() => true);
+    private async executeTestCallback(entry: TestEntry, titleChain: string[]): Promise<void> {
+        const startTime = Date.now();
+        const timeoutValue = entry.timeoutMs >= 0 ? entry.timeoutMs : this.getTimeoutValue("it");
+
+        try {
+            await this.timeoutPromisifier.wrap(this.asyncPromisifier.exec(entry.callback, "Test: " + entry.title), timeoutValue);
+            await this.eventEmitter.emitAndWaitForCompletion("beforeTestSuccess", entry.title);
+
+            this.runResults.totalSuccesses++;
+
+            const testDurationMs = Date.now() - startTime;
+            this.eventEmitter.emit("testSuccess", entry.title, testDurationMs);
+        } catch (error) {
+            if (error instanceof TimeoutError) {
+                this.runResults.totalTimeouts++;
+                this.runResults.timeoutInfo.push({
+                    describeChain: titleChain,
+                    title: entry.title,
+                    elapsedMs: error.elapsedMs,
+                    timeoutMs: error.timeoutMs
+                });
+                this.eventEmitter.emit("testTimeout", entry.title, error.elapsedMs, error.timeoutMs);
+            } else {
+                this.runResults.totalFailures++;
+                this.runResults.failureInfo.push({
+                    describeChain: titleChain,
+                    title: entry.title,
+                    error: error
+                });
+                this.eventEmitter.emit("testFail", entry.title, error, Date.now() - startTime);
+            }
+
+            // If we want to stop additional execution on the first fail, just cancel the rest of the run.
+            if (this.config.stopOnFirstFail) {
+                this.testRunCancelled = true;
+            }
+        }
     }
 
     private evaluateQueueWithTimeout(type: QueueStackType): Promise<void> {
@@ -414,11 +413,8 @@ class TestRunner {
     }
 
     private getTimeoutValue<T extends keyof TimeoutConfig>(type: T): number {
-        if (typeof this.config.timeoutMs === "number") {
-            return this.config.timeoutMs;
-        } else {
-            return this.config.timeoutMs[type];
-        }
+        const timeout: number | TimeoutConfig = this.config.timeoutMs;
+        return typeof timeout === "number" ? timeout : timeout[type];
     }
 
     private throwIfTestInProgress = (name: string): void => {
