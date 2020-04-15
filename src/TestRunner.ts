@@ -7,6 +7,7 @@ import {mergeConfig, TestRunnerConfig, TimeoutConfig} from "./Config/TestRunnerC
 import {DefaultTestRunnerConfig} from "./Config/DefaultTestRunnerConfig";
 import {ItOptions} from "./Config/ItOptions";
 import {EventCallback, SimpleEventEmitter} from "./EventEmitter/SimpleEventEmitter";
+import {QueueStack} from "./QueueStack";
 
 interface TestEntry extends TestInfo {
     type: "describe" | "it";
@@ -47,11 +48,11 @@ class TestRunner {
     private readonly config: TestRunnerConfig;
 
     private testQueueStack: TestQueue[] = [];
-    private queueStacks: { [key: string]: (() => void)[][] } = {
-        "before": [],
-        "beforeEach": [],
-        "after": [],
-        "afterEach": []
+    private queueStacks: { [key: string]: QueueStack<(result?: Error | any) => void> } = {
+        "before": new QueueStack(),
+        "beforeEach": new QueueStack(),
+        "after": new QueueStack(),
+        "afterEach": new QueueStack()
     };
 
     private currentTest: TestEntry | null = null;
@@ -116,42 +117,22 @@ class TestRunner {
 
     before(execBlock: (done?: (result?: Error | any) => void) => Promise<Error | any> | any) {
         this.throwIfTestInProgress("before");
-        const beforeQueueStack = this.queueStacks["before"];
-        if (beforeQueueStack.length === 0) {
-            beforeQueueStack.push([execBlock]);
-        } else {
-            beforeQueueStack[0].push(execBlock);
-        }
+        this.queueStacks["before"].pushOnTop(execBlock);
     }
 
     beforeEach(execBlock: (done?: (result?: Error | any) => void) => Promise<Error | any> | any) {
         this.throwIfTestInProgress("beforeEach");
-        const beforeEachQueueStack = this.queueStacks["beforeEach"];
-        if (beforeEachQueueStack.length === 0) {
-            beforeEachQueueStack.push([execBlock]);
-        } else {
-            beforeEachQueueStack[0].push(execBlock);
-        }
+        this.queueStacks["beforeEach"].pushOnTop(execBlock);
     }
 
     after(execBlock: (done?: (result?: Error | any) => void) => Promise<Error | any> | any) {
         this.throwIfTestInProgress("after");
-        const afterQueueStack = this.queueStacks["after"];
-        if (afterQueueStack.length === 0) {
-            afterQueueStack.push([execBlock]);
-        } else {
-            afterQueueStack[0].push(execBlock);
-        }
+        this.queueStacks["after"].pushOnTop(execBlock);
     }
 
     afterEach(execBlock: (done?: (result?: Error | any) => void) => Promise<Error | any> | any) {
         this.throwIfTestInProgress("afterEach");
-        const afterEachQueueStack = this.queueStacks["afterEach"];
-        if (afterEachQueueStack.length === 0) {
-            afterEachQueueStack.push([execBlock]);
-        } else {
-            afterEachQueueStack[0].push(execBlock);
-        }
+        this.queueStacks["afterEach"].pushOnTop(execBlock);
     }
 
     /**
@@ -174,7 +155,6 @@ class TestRunner {
             return results;
         }).catch((e) => {
             this.currentRun = null;
-
             throw e;
         });
 
@@ -208,7 +188,7 @@ class TestRunner {
         this.testRunCancelled = false;
         this.testQueueStack = [];
         for (const type of QueueStackTypes) {
-            this.queueStacks[type] = [[]];
+            this.queueStacks[type].reset();
         }
     }
 
@@ -298,7 +278,7 @@ class TestRunner {
         });
 
         for (const type of QueueStackTypes) {
-            this.queueStacks[type].push([]);
+            this.queueStacks[type].pushStack([]);
         }
 
         this.eventEmitter.emit("beforeDescribe", entry.title);
@@ -310,9 +290,9 @@ class TestRunner {
         for (const type of QueueStackTypes) {
             // Befores operate outside-in, first-last.
             if (type === "before" || type === "beforeEach") {
-                this.queueStacks[type].pop();
+                this.queueStacks[type].popStack();
             } else {
-                this.queueStacks[type].shift();
+                this.queueStacks[type].shiftStack();
             }
         }
 
@@ -327,7 +307,6 @@ class TestRunner {
             queue.evaluatedBefores = true;
             await this.evaluateQueueWithTimeout("before");
         }
-
         await this.evaluateQueueWithTimeout("beforeEach");
 
         this.eventEmitter.emit("beforeTest", entry.title);
@@ -389,27 +368,11 @@ class TestRunner {
 
     private evaluateQueue(type: QueueStackType): Promise<void> {
         const queueStack = this.queueStacks[type];
-        let promise = Promise.resolve();
-
         if (type === "before" || type === "beforeEach") {
-            // Befores operate outside-in, first-last.
-            for (let i = 0; i < queueStack.length; i++) {
-                const queue = queueStack[i];
-                for (let j = 0; j < queue.length; j++) {
-                    promise = promise.then(() => this.asyncPromisifier.exec(queue[j], type));
-                }
-            }
+            return queueStack.traverseLevelOrder((callback) => this.asyncPromisifier.exec(callback, type));
         } else {
-            // Afters operate inside-out, last-first
-            for (let i = queueStack.length - 1; i >= 0; i--) {
-                const queue = queueStack[i];
-                for (let j = queue.length - 1; j >= 0; j--) {
-                    promise = promise.then(() => this.asyncPromisifier.exec(queue[j], type));
-                }
-            }
+            return queueStack.traverseInverseLevelOrder((callback) => this.asyncPromisifier.exec(callback, type));
         }
-
-        return promise;
     }
 
     private getTimeoutValue<T extends keyof TimeoutConfig>(type: T): number {
