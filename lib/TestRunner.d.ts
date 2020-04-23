@@ -7,10 +7,12 @@ import { EventCallback, SimpleEventEmitter } from "./EventEmitter/SimpleEventEmi
 interface ItWithSubMethods {
     (title: string, execBlock: (done?: (result?: Error | any) => void) => Promise<Error | any> | any, options?: Partial<ItOptions>): void;
     only(title: string, execBlock: (done?: (result?: Error | any) => void) => Promise<Error | any> | any, options?: Partial<ItOptions>): any;
+    skip(title: string, execBlock: (done?: (result?: Error | any) => void) => Promise<Error | any> | any, options?: Partial<ItOptions>): any;
 }
 interface DescribeWithSubMethods {
     (title: string, execBlock: (done?: (result?: Error | any) => void) => Promise<Error | any> | any): void;
     only(title: string, execBlock: (done?: (result?: Error | any) => void) => Promise<Error | any> | any): any;
+    skip(title: string, execBlock: (done?: (result?: Error | any) => void) => Promise<Error | any> | any, options?: Partial<ItOptions>): any;
 }
 /**
  * before -> beforeEach -> beforeHook -> it -> afterHook -> afterEach -> after
@@ -39,8 +41,10 @@ declare class TestRunner {
     off<Event extends keyof EventMap>(event: Event, callback: EventCallback<EventMap, Event>): void;
     readonly describe: DescribeWithSubMethods;
     private describeOnly;
+    private describeSkip;
     readonly it: ItWithSubMethods;
     private itOnly;
+    private itSkip;
     before(execBlock: (done?: (result?: Error | any) => void) => Promise<Error | any> | any): void;
     beforeEach(execBlock: (done?: (result?: Error | any) => void) => Promise<Error | any> | any): void;
     after(execBlock: (done?: (result?: Error | any) => void) => Promise<Error | any> | any): void;

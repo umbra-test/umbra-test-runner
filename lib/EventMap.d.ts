@@ -47,6 +47,12 @@ interface EventMap {
      */
     "testTimeout": [string, number, number];
     /**
+     * Fired after a test has been skipped. This will be fired in addition to "afterTest"
+     *
+     * @param title - The title of the test that was skipped.
+     */
+    "testSkipped": [string];
+    /**
      * Fired before a describe block is evaluated.
      *
      * @param title -- The title of the describe block being evaluated.

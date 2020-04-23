@@ -12,12 +12,14 @@ import {QueueStack} from "./QueueStack";
 interface TestEntry extends TestInfo {
     type: "describe" | "it";
     absoluteFilePath: string | undefined;
+    skip: boolean;
 }
 
 interface TestQueue {
     titleChain: string[];
     tests: TestEntry[];
     evaluatedBefores: boolean;
+    skipAllTests: boolean;
     firstOnlyIndex: null | number;
 }
 
@@ -28,12 +30,16 @@ interface ItWithSubMethods {
     (title: string, execBlock: (done?: (result?: Error | any) => void) => Promise<Error | any> | any, options?: Partial<ItOptions>): void;
 
     only(title: string, execBlock: (done?: (result?: Error | any) => void) => Promise<Error | any> | any, options?: Partial<ItOptions>);
+
+    skip(title: string, execBlock: (done?: (result?: Error | any) => void) => Promise<Error | any> | any, options?: Partial<ItOptions>);
 }
 
 interface DescribeWithSubMethods {
     (title: string, execBlock: (done?: (result?: Error | any) => void) => Promise<Error | any> | any): void;
 
     only(title: string, execBlock: (done?: (result?: Error | any) => void) => Promise<Error | any> | any);
+
+    skip(title: string, execBlock: (done?: (result?: Error | any) => void) => Promise<Error | any> | any, options?: Partial<ItOptions>);
 }
 
 /**
@@ -71,6 +77,9 @@ class TestRunner {
         this.it.only = this.itOnly;
         this.describe.only = this.describeOnly;
 
+        this.it.skip = this.itSkip;
+        this.describe.skip = this.describeSkip;
+
         this.resetRunResults();
     }
 
@@ -105,6 +114,11 @@ class TestRunner {
         this.pushToCurrentTestQueue("describe", title, execBlock, true);
     };
 
+    private describeSkip = (title: string, execBlock: (done?: (result?: Error | any) => void) => Promise<Error | any> | any, options?: Partial<ItOptions>): void => {
+        this.throwIfTestInProgress("describe.skip");
+        this.pushToCurrentTestQueue("describe", title, execBlock, false, undefined, true);
+    };
+
     readonly it: ItWithSubMethods = ((title: string, execBlock: (done?: (result?: Error | any) => void) => Promise<Error | any> | any, options?: Partial<ItOptions>): void => {
         this.throwIfTestInProgress("it");
         this.pushToCurrentTestQueue("it", title, execBlock, false, options ? options.timeoutMs : undefined);
@@ -113,6 +127,11 @@ class TestRunner {
     private itOnly = (title: string, execBlock: (done?: (result?: Error | any) => void) => Promise<Error | any> | any, options?: Partial<ItOptions>): void => {
         this.throwIfTestInProgress("it.only");
         this.pushToCurrentTestQueue("it", title, execBlock, true, options ? options.timeoutMs : undefined);
+    };
+
+    private itSkip = (title: string, execBlock: (done?: (result?: Error | any) => void) => Promise<Error | any> | any, options?: Partial<ItOptions>): void => {
+        this.throwIfTestInProgress("it.skip");
+        this.pushToCurrentTestQueue("it", title, execBlock, false, undefined, true);
     };
 
     before(execBlock: (done?: (result?: Error | any) => void) => Promise<Error | any> | any) {
@@ -204,12 +223,13 @@ class TestRunner {
         });
     }
 
-    private pushToCurrentTestQueue(type: "it" | "describe", title: string, execBlock: () => void, only?: boolean, timeoutMs?: number) {
+    private pushToCurrentTestQueue(type: "it" | "describe", title: string, execBlock: () => void, only?: boolean, timeoutMs?: number, skip?: boolean) {
         if (this.testQueueStack.length === 0) {
             const testQueue: TestQueue = {
                 titleChain: [],
                 tests: [],
                 evaluatedBefores: false,
+                skipAllTests: type === "describe" && skip,
                 firstOnlyIndex: only ? 0 : null
             };
             this.testQueueStack.push(testQueue);
@@ -220,7 +240,8 @@ class TestRunner {
             title: title,
             type: type,
             callback: execBlock,
-            absoluteFilePath: this.lastFilePathSet
+            absoluteFilePath: this.lastFilePathSet,
+            skip: skip || currentEntry.skipAllTests
         };
 
         if (only && currentEntry.firstOnlyIndex === null) {
@@ -274,6 +295,7 @@ class TestRunner {
             titleChain: [].concat(queue.titleChain, entry.title),
             tests: [],
             evaluatedBefores: false,
+            skipAllTests: entry.skip,
             firstOnlyIndex: null
         });
 
@@ -303,6 +325,11 @@ class TestRunner {
     }
 
     private async evaluateTest(queue: TestQueue, entry: TestEntry): Promise<boolean> {
+        if (entry.skip) {
+            this.eventEmitter.emit("testSkipped", entry.title);
+            return false;
+        }
+
         if (!queue.evaluatedBefores) {
             queue.evaluatedBefores = true;
             await this.evaluateQueueWithTimeout("before");

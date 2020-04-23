@@ -8,7 +8,7 @@ chai.use(sinonChai);
 const expect = chai.expect;
 
 interface TestCase {
-    type: "it" | "it.only" | "describe" | "describe.only" | "before" | "after" | "beforeEach" | "afterEach";
+    type: "it" | "it.only" | "it.skip" | "describe" | "describe.only" | "describe.skip" | "before" | "after" | "beforeEach" | "afterEach";
     order: number | null;
     times?: number;
     error?: Error;
@@ -115,8 +115,12 @@ class TestRunnerForTestRunner {
             this.testRunnerInstance[key](title, spy);
         } else if (key === "it.only") {
             this.testRunnerInstance.it.only(title, spy);
+        } else if (key === "it.skip") {
+            this.testRunnerInstance.it.skip(title, spy);
         } else if (key === "describe.only") {
             this.testRunnerInstance.describe.only(title, spy);
+        } else if (key === "describe.skip") {
+            this.testRunnerInstance.describe.skip(title, spy);
         } else {
             this.testRunnerInstance[key](spy);
         }
