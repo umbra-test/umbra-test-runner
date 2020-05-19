@@ -8,8 +8,7 @@
   },
   "scripts": {
     "build": "npx tsc",
-    "test": "npx tsc -p tsconfig-test.json && npx nyc mocha --require source-map-support/register --recursive lib/tests/tst/**/*.js",
-    "test-umbra": "npx tsc -p tsconfig-test.json && umbra",
+    "test": "npx tsc -p tsconfig-test.json && npx nyc umbra",
     "lint": "tslint --project .",
     "coveralls": "nyc report --reporter=text-lcov | coveralls",
     "all": "npm run build && npm run test && npm run lint && npm run coveralls"
@@ -38,7 +37,7 @@
     ]
   },
   "dependencies": {
-    "@umbra-test/umbra-util": "0.0.4"
+    "@umbra-test/umbra-util": "^0.0.4"
   },
   "devDependencies": {
     "@types/chai": "^4.2.11",
@@ -50,15 +49,10 @@
     "@types/sinon-chai": "^3.2.3",
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
-    "mocha": "^7.1.0",
-    "mocha-silent-reporter": "^1.0.0",
     "nyc": "^15.0.0",
-    "rollup": "^2.0.6",
-    "rollup-plugin-terser": "^5.3.0",
     "sinon": "^9.0.1",
     "sinon-chai": "^3.5.0",
     "source-map-support": "^0.5.16",
-    "ts-node": "^8.6.2",
     "typescript": "^3.9.2"
   },
   "bugs": {
