@@ -310,12 +310,7 @@ class TestRunner {
         await this.runNextTestQueue();
 
         for (const type of QueueStackTypes) {
-            // Befores operate outside-in, first-last.
-            if (type === "before" || type === "beforeEach") {
-                this.queueStacks[type].popStack();
-            } else {
-                this.queueStacks[type].shiftStack();
-            }
+            this.queueStacks[type].shiftStack();
         }
 
         const describeDurationMs = Date.now() - startTime;

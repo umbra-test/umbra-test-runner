@@ -1,5 +1,4 @@
 import {runTests} from "../TestRunnerForTestRunner";
-import {TestRunner} from "../../src/TestRunner";
 
 describe("beforeEach", () => {
     runTests("should not run a beforeEach if there are no tests", {
@@ -202,7 +201,7 @@ describe("beforeEach", () => {
         order: 1
     });
 
-    runTests("should handle befores and beforeEaches with before being priorited before beforeEach, per level", {
+    runTests("should handle befores and beforeEaches with before being prioritized before beforeEach, per level", {
         type: "describe",
         order: 0,
         children: [{
@@ -227,4 +226,32 @@ describe("beforeEach", () => {
         type: "before",
         order: 1
     });
+
+    runTests("should only execute beforeEaches for the given level", {
+        type: "describe",
+        order: 0,
+        children: [
+            {
+                type: "describe",
+                order: 1,
+                children: [{
+                    type: "beforeEach",
+                    order: 2
+                }, {
+                    type: "it",
+                    order: 3
+                }]
+            }, {
+                type: "describe",
+                order: 4,
+                children: [{
+                    type: "beforeEach",
+                    order: 5
+                }, {
+                    type: "it",
+                    order: 6
+                }]
+            }
+        ]
+    })
 });
