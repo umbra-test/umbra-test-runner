@@ -8,15 +8,14 @@ import {DefaultTestRunnerConfig} from "./Config/DefaultTestRunnerConfig";
 import {ItOptions} from "./Config/ItOptions";
 import {EventCallback, SimpleEventEmitter} from "./EventEmitter/SimpleEventEmitter";
 import {QueueStack} from "./QueueStack";
+import {TestResults} from "./TestResults";
 
 interface TestEntry extends TestInfo {
     type: "describe" | "it";
-    absoluteFilePath: string | undefined;
-    skip: boolean;
 }
 
 interface TestQueue {
-    titleChain: string[];
+    describeTitleChain: string[];
     tests: TestEntry[];
     evaluatedBefores: boolean;
     skipAllTests: boolean;
@@ -226,7 +225,7 @@ class TestRunner {
     private pushToCurrentTestQueue(type: "it" | "describe", title: string, execBlock: () => void, only?: boolean, timeoutMs?: number, skip?: boolean) {
         if (this.testQueueStack.length === 0) {
             const testQueue: TestQueue = {
-                titleChain: [],
+                describeTitleChain: [],
                 tests: [],
                 evaluatedBefores: false,
                 skipAllTests: type === "describe" && skip,
@@ -237,9 +236,10 @@ class TestRunner {
 
         const currentEntry = this.testQueueStack[this.testQueueStack.length - 1];
         const testEntry: TestEntry = {
-            title: title,
             type: type,
             callback: execBlock,
+            describeTitleChain: currentEntry.describeTitleChain,
+            title: title,
             absoluteFilePath: this.lastFilePathSet,
             skip: skip || currentEntry.skipAllTests
         };
@@ -278,7 +278,6 @@ class TestRunner {
     private async executeTest(queue: TestQueue, entry: TestEntry): Promise<boolean> {
         if (entry.absoluteFilePath !== this.currentlyExecutingFilePath) {
             this.currentlyExecutingFilePath = entry.absoluteFilePath;
-            this.eventEmitter.emit("activeFileChanged", this.currentlyExecutingFilePath);
         }
 
         if (this.testRunCancelled) {
@@ -292,7 +291,7 @@ class TestRunner {
 
     private async evaluateDescribe(queue: TestQueue, entry: TestEntry): Promise<boolean> {
         this.testQueueStack.push({
-            titleChain: [].concat(queue.titleChain, entry.title),
+            describeTitleChain: [].concat(queue.describeTitleChain, entry.title),
             tests: [],
             evaluatedBefores: false,
             skipAllTests: entry.skip,
@@ -303,9 +302,6 @@ class TestRunner {
             this.queueStacks[type].pushStack([]);
         }
 
-        this.eventEmitter.emit("beforeDescribe", entry.title);
-
-        const startTime = Date.now();
         await this.asyncPromisifier.exec(entry.callback, "describe");
         await this.runNextTestQueue();
 
@@ -313,15 +309,18 @@ class TestRunner {
             this.queueStacks[type].shiftStack();
         }
 
-        const describeDurationMs = Date.now() - startTime;
-        this.eventEmitter.emit("afterDescribe", entry.title, describeDurationMs);
-
         return false;
     }
 
     private async evaluateTest(queue: TestQueue, entry: TestEntry): Promise<boolean> {
         if (entry.skip) {
-            this.eventEmitter.emit("testSkipped", entry.title);
+            const testResults: TestResults = {
+                result: "skipped",
+                testInfo: entry,
+                elapsedMs: 0
+            };
+
+            this.eventEmitter.emit("onTestResult", testResults as TestResults);
             return false;
         }
 
@@ -331,11 +330,10 @@ class TestRunner {
         }
         await this.evaluateQueueWithTimeout("beforeEach");
 
-        this.eventEmitter.emit("beforeTest", entry.title);
         this.currentTest = entry;
 
         try {
-            await this.executeTestCallback(entry, queue.titleChain);
+            await this.executeTestCallback(entry, queue.describeTitleChain);
             await this.evaluateQueueWithTimeout("afterEach");
         } finally {
             this.runResults.totalTests++;
@@ -349,32 +347,24 @@ class TestRunner {
         const startTime = Date.now();
         const timeoutValue = entry.timeoutMs >= 0 ? entry.timeoutMs : this.getTimeoutValue("it");
 
+        const testResults: Partial<TestResults> = {
+            testInfo: entry
+        };
+
         try {
             await this.timeoutPromisifier.wrap(this.asyncPromisifier.exec(entry.callback, "Test: " + entry.title), timeoutValue);
-            await this.eventEmitter.emitAndWaitForCompletion("beforeTestSuccess", entry.title);
+            await this.eventEmitter.emitAndWaitForCompletion("beforeTestSuccess", entry);
 
             this.runResults.totalSuccesses++;
-
-            const testDurationMs = Date.now() - startTime;
-            this.eventEmitter.emit("testSuccess", entry.title, testDurationMs);
+            testResults.result = "success";
         } catch (error) {
             if (error instanceof TimeoutError) {
                 this.runResults.totalTimeouts++;
-                this.runResults.timeoutInfo.push({
-                    describeChain: titleChain,
-                    title: entry.title,
-                    elapsedMs: error.elapsedMs,
-                    timeoutMs: error.timeoutMs
-                });
-                this.eventEmitter.emit("testTimeout", entry.title, error.elapsedMs, error.timeoutMs);
+                testResults.result = "timeout";
             } else {
                 this.runResults.totalFailures++;
-                this.runResults.failureInfo.push({
-                    describeChain: titleChain,
-                    title: entry.title,
-                    error: error
-                });
-                this.eventEmitter.emit("testFail", entry.title, error, Date.now() - startTime);
+                testResults.result = "fail";
+                testResults.error = error;
             }
 
             // If we want to stop additional execution on the first fail, just cancel the rest of the run.
@@ -382,6 +372,10 @@ class TestRunner {
                 this.testRunCancelled = true;
             }
         }
+
+        testResults.elapsedMs = Date.now() - startTime;
+        this.runResults.testResults.push(testResults as TestResults);
+        this.eventEmitter.emit("onTestResult", testResults as TestResults);
     }
 
     private evaluateQueueWithTimeout(type: QueueStackType): Promise<void> {
@@ -415,8 +409,7 @@ class TestRunner {
             totalSuccesses: 0,
             totalFailures: 0,
             totalTimeouts: 0,
-            failureInfo: [],
-            timeoutInfo: []
+            testResults: []
         };
     }
 }

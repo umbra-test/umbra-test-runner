@@ -4,6 +4,7 @@ import * as sinon from "sinon";
 import * as sinonChai from "sinon-chai";
 
 import {TestRunner} from "../../src/TestRunner";
+import {TestResults} from "../../src";
 
 chai.use(chaiAsPromised);
 chai.use(sinonChai);
@@ -32,7 +33,7 @@ describe("Events", () => {
         });
 
         it("should delegate on to an underlying event emitter", () => {
-            const expectedEvent = "beforeTest";
+            const expectedEvent = "onTestStart";
             const expectedCallback = sinon.spy();
 
             testRunner.on(expectedEvent, expectedCallback);
@@ -40,7 +41,7 @@ describe("Events", () => {
         });
 
         it("should delegate once to an underlying event emitter", () => {
-            const expectedEvent = "beforeTest";
+            const expectedEvent = "onTestStart";
             const expectedCallback = sinon.spy();
 
             testRunner.once(expectedEvent, expectedCallback);
@@ -48,44 +49,11 @@ describe("Events", () => {
         });
 
         it("should delegate off to an underlying event emitter", () => {
-            const expectedEvent = "beforeTest";
+            const expectedEvent = "onTestStart";
             const expectedCallback = sinon.spy();
 
             testRunner.off(expectedEvent, expectedCallback);
             expect(mockEventEmitter.off).to.have.been.calledWith(expectedEvent, expectedCallback);
-        });
-    });
-
-    describe("beforeTest", () => {
-        it("should be emitted before a test is evaluated", () => {
-            const testSpy = sinon.spy();
-            const expectedTitle = "title";
-
-            const eventSpy = sinon.spy();
-            testRunner.on("beforeTest", eventSpy);
-
-            testRunner.it(expectedTitle, testSpy);
-
-            return testRunner.run().then(() => {
-                expect(eventSpy).to.have.been.calledWith(expectedTitle);
-                expect(testSpy).to.have.been.calledAfter(eventSpy);
-            });
-        });
-
-        it("should be emitted for every test", () => {
-            const expectedTitleA = "titleA";
-            const expectedTitleB = "titleB";
-
-            const eventSpy = sinon.spy();
-            testRunner.on("beforeTest", eventSpy);
-
-            testRunner.it(expectedTitleA, sinon.spy());
-            testRunner.it(expectedTitleB, sinon.spy());
-
-            return testRunner.run().then(() => {
-                expect(eventSpy).to.have.been.calledWith(expectedTitleA);
-                expect(eventSpy).to.have.been.calledWith(expectedTitleB);
-            });
         });
     });
 
@@ -100,7 +68,9 @@ describe("Events", () => {
             testRunner.it(expectedTitle, testSpy);
 
             return testRunner.run().then(() => {
-                expect(eventSpy).to.have.been.calledWith(expectedTitle);
+                expect(eventSpy).to.have.been.calledWithMatch({
+                    title: expectedTitle
+                });
             });
         });
 
@@ -115,8 +85,12 @@ describe("Events", () => {
             testRunner.it(expectedTitleB, sinon.spy());
 
             return testRunner.run().then(() => {
-                expect(eventSpy).to.have.been.calledWith(expectedTitleA);
-                expect(eventSpy).to.have.been.calledWith(expectedTitleB);
+                expect(eventSpy).to.have.been.calledWithMatch({
+                    title: expectedTitleA
+                });
+                expect(eventSpy).to.have.been.calledWithMatch({
+                    title: expectedTitleB
+                });
             });
         });
 
@@ -125,18 +99,16 @@ describe("Events", () => {
             const eventSpy = sinon.stub().throws(error);
             testRunner.on("beforeTestSuccess", eventSpy);
 
-            const successSpy = sinon.spy();
-            testRunner.on("testSuccess", successSpy);
-
-            const failSpy = sinon.spy();
-            testRunner.on("testFail", failSpy);
+            const resultSpy = sinon.spy();
+            testRunner.on("onTestResult", resultSpy);
 
             const testName = "success->error";
             testRunner.it(testName, sinon.spy());
 
             return testRunner.run().catch(() => {
-                expect(successSpy).to.not.have.been.called;
-                expect(failSpy).to.have.been.calledWith(testName, error);
+                expect(resultSpy).to.have.been.calledWithMatch({
+                    error: error
+                });
             });
         });
 
@@ -144,121 +116,51 @@ describe("Events", () => {
             const error = new Error("success->error");
             testRunner.on("beforeTestSuccess", () => Promise.reject(error));
 
-            const successSpy = sinon.spy();
-            testRunner.on("testSuccess", successSpy);
-
-            const failSpy = sinon.spy();
-            testRunner.on("testFail", failSpy);
+            const resultSpy = sinon.spy();
+            testRunner.on("onTestResult", resultSpy);
 
             const testName = "success->error";
             testRunner.it(testName, sinon.spy());
 
             return testRunner.run().catch(() => {
-                expect(successSpy).to.not.have.been.called;
-                expect(failSpy).to.have.been.calledWith(testName, error);
+                expect(resultSpy).to.have.been.calledWithMatch({
+                    error: error
+                });
             });
         });
     });
 
-    describe("testSuccess", () => {
-        it("should be emitted only for tests that succeed", () => {
-            const testSpy = sinon.spy();
-            const expectedTitle = "title";
+    describe("changing test files", () => {
+        it("should emit test cases per file they're executed in", () => {
+            const expectedCallback = sinon.spy();
+            testRunner.on("onTestResult", expectedCallback);
 
-            const eventSpy = sinon.spy();
-            testRunner.on("testSuccess", eventSpy);
+            const testFileA = "test-file-a";
+            testRunner.setCurrentFile(testFileA);
 
-            testRunner.it(expectedTitle, testSpy);
-            testRunner.it("other-test", sinon.stub().throws(new Error("expected-error")));
+            const testFileATestTitle = "test-title-a";
+            testRunner.it(testFileATestTitle, sinon.spy());
 
-            return testRunner.run().catch(() => {
-                expect(eventSpy).to.have.been.calledWith(expectedTitle);
-                expect(eventSpy).to.have.been.calledAfter(testSpy);
-            });
-        });
+            const testFileB = "test-file-b";
+            testRunner.setCurrentFile(testFileB);
 
-        it("should be emitted for every succeeding test", () => {
-            const expectedTitleA = "titleA";
-            const expectedTitleB = "titleB";
-
-            const eventSpy = sinon.spy();
-            testRunner.on("testSuccess", eventSpy);
-
-            testRunner.it(expectedTitleA, sinon.spy());
-            testRunner.it(expectedTitleB, sinon.spy());
+            const testFileBTestTitle = "test-title-b";
+            testRunner.it(testFileBTestTitle, sinon.spy());
 
             return testRunner.run().then(() => {
-                expect(eventSpy).to.have.been.calledWith(expectedTitleA);
-                expect(eventSpy).to.have.been.calledWith(expectedTitleB);
-            });
-        });
-    });
+                expect(expectedCallback).to.have.been.calledWithMatch({
+                    testInfo: {
+                        title: testFileATestTitle,
+                        absoluteFilePath: testFileA
+                    }
+                } as Partial<TestResults>);
 
-    describe("testFail", () => {
-        it("should be emitted only for tests that fail", () => {
-            const testSpy = sinon.spy();
-            const expectedTitle = "title";
-            const expectedError = new Error("expected-error");
-
-            const eventSpy = sinon.spy();
-            testRunner.on("testFail", eventSpy);
-
-            testRunner.it("other-test", testSpy);
-            testRunner.it(expectedTitle, sinon.stub().throws(expectedError));
-
-            return testRunner.run().catch(() => {
-                expect(eventSpy).to.have.been.calledWith(expectedTitle, expectedError);
-                expect(eventSpy).to.have.been.calledAfter(testSpy);
-            });
-        });
-
-        it("should be emitted for only the first failing test (all tests after fail aren't executed)", () => {
-            const expectedTitleA = "titleA";
-            const expectedErrorA = new Error("titleA-error");
-            testRunner.it(expectedTitleA, sinon.stub().throws(expectedErrorA));
-
-            const expectedTitleB = "titleB";
-            const expectedErrorB = new Error("titleB-error");
-            testRunner.it(expectedTitleB, sinon.stub().throws(expectedErrorB));
-
-            const eventSpy = sinon.spy();
-            testRunner.on("testFail", eventSpy);
-
-            return testRunner.run().catch(() => {
-                expect(eventSpy).to.have.been.calledWith(expectedTitleA, expectedErrorA);
-                expect(eventSpy).to.not.have.been.calledWith(expectedTitleB, expectedErrorB);
-            });
-        });
-    });
-
-    describe("activeFileChanged", () => {
-        const fileA = "fileA";
-        const fileB = "fileB";
-
-        it("should be fired when the active file is set initially", function () {
-            testRunner.setCurrentFile(fileA);
-
-            const testSpy = sinon.spy();
-            testRunner.it("test-fileA", testSpy);
-
-            const eventSpy = sinon.spy();
-            testRunner.on("activeFileChanged", eventSpy);
-
-            return testRunner.run().then(() => {
-                expect(eventSpy).to.have.been.calledWith(fileA);
-            });
-        });
-
-        it("should be fired when it changes", function () {
-            testRunner.setCurrentFile(fileB);
-
-            testRunner.it("test-fileB", sinon.spy());
-
-            const eventSpy = sinon.spy();
-            testRunner.on("activeFileChanged", eventSpy);
-
-            return testRunner.run().then(() => {
-                expect(eventSpy).to.have.been.calledWith(fileB);
+                expect(expectedCallback).to.have.been.calledWithMatch({
+                    testInfo: {
+                        title: testFileBTestTitle,
+                        absoluteFilePath: testFileB
+                    }
+                } as Partial<TestResults>);
             });
         });
     });

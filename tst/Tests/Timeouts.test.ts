@@ -22,10 +22,12 @@ const runTimeoutTests = () => {
             expect(results.totalFailures).to.equal(0);
             expect(results.totalTimeouts).to.equal(1);
 
-            expect(results.failureInfo).to.have.lengthOf(0);
+            const failureCases = results.testResults.filter((result) => result.result === "fail");
+            expect(failureCases).to.have.lengthOf(0);
 
-            expect(results.timeoutInfo).to.have.lengthOf(1);
-            expect(results.timeoutInfo[0].title).to.equal(title);
+            const timeoutCases = results.testResults.filter((result) => result.result === "timeout");
+            expect(timeoutCases).to.have.lengthOf(1);
+            expect(timeoutCases[0].testInfo.title).to.equal(title);
         });
     });
 
@@ -107,10 +109,12 @@ describe("timeoutConfig", () => {
             expect(results.totalFailures).to.equal(0);
             expect(results.totalTimeouts).to.equal(1);
 
-            expect(results.failureInfo).to.have.lengthOf(0);
+            const failureCases = results.testResults.filter((result) => result.result === "fail");
+            expect(failureCases).to.have.lengthOf(0);
 
-            expect(results.timeoutInfo).to.have.lengthOf(1);
-            expect(results.timeoutInfo[0].title).to.equal(title);
+            const timeoutCases = results.testResults.filter((result) => result.result === "timeout");
+            expect(timeoutCases).to.have.lengthOf(1);
+            expect(timeoutCases[0].testInfo.title).to.equal(title);
         });
     });
 
@@ -127,10 +131,12 @@ describe("timeoutConfig", () => {
             expect(results.totalFailures).to.equal(0);
             expect(results.totalTimeouts).to.equal(1);
 
-            expect(results.failureInfo).to.have.lengthOf(0);
+            const failureCases = results.testResults.filter((result) => result.result === "fail");
+            expect(failureCases).to.have.lengthOf(0);
 
-            expect(results.timeoutInfo).to.have.lengthOf(1);
-            expect(results.timeoutInfo[0].title).to.equal(title);
+            const timeoutCases = results.testResults.filter((result) => result.result === "timeout");
+            expect(timeoutCases).to.have.lengthOf(1);
+            expect(timeoutCases[0].testInfo.title).to.equal(title);
         });
     });
 });
@@ -149,8 +155,8 @@ describe("Additional timeout tests", function () {
         });
 
         return testRunner.run().then((results: RunResults) => {
-            const failureInfo = results.timeoutInfo[0];
-            expect(failureInfo.describeChain).to.deep.equal([firstDescribeTitle, secondDescribeTitle]);
+            const timeoutCases = results.testResults.filter((result) => result.result === "timeout");
+            expect(timeoutCases[0].testInfo.describeTitleChain).to.deep.equal([firstDescribeTitle, secondDescribeTitle]);
         });
     });
 

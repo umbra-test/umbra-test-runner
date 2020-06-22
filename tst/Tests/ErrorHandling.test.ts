@@ -111,8 +111,9 @@ describe(`"it" errors`, () => {
         });
 
         return testRunner.run().then((results: RunResults) => {
-            const failureInfo = results.failureInfo[0];
-            expect(failureInfo.describeChain).to.deep.equal([firstDescribeTitle, secondDescribeTitle]);
+            const failureCases = results.testResults.filter((result) => result.result === "fail");
+            expect(failureCases).to.have.lengthOf(1);
+            expect(failureCases[0].testInfo.describeTitleChain).to.deep.equal([firstDescribeTitle, secondDescribeTitle]);
         });
     });
 });
@@ -148,8 +149,9 @@ describe("Adding things while executing tests", () => {
             expect(results.totalSuccesses).to.equal(0);
             expect(results.totalFailures).to.equal(1);
 
-            expect(results.failureInfo).to.have.lengthOf(1);
-            expect(results.failureInfo[0].title).to.equal(title);
+            const failureCases = results.testResults.filter((result) => result.result === "fail");
+            expect(failureCases).to.have.lengthOf(1);
+            expect(failureCases[0].testInfo.title).to.equal(title);
         });
 
     for (const type of ["before", "beforeEach", "after", "afterEach"]) {
