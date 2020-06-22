@@ -1,5 +1,5 @@
 import {RunResults} from "./RunResults";
-import {TestResults} from "./TestResults";
+import {TestResult} from "./TestResult";
 import {TestInfo} from "./TestInfo";
 
 /**
@@ -19,20 +19,18 @@ interface EventMap {
     /**
      * Fired directly after a test has completed.
      */
-    "onTestResult": [TestResults];
+    "onTestEnd": [TestResult];
 
     /**
      * Fired once all tests have been executed.
      */
-    "onRunComplete": [RunResults];
+    "onRunEnd": [RunResults];
 
     /**
      * Fired before a test has successfully completed. Enables tooling to change succeeding tests into failures
      * via returning a Promise or throwing an error.
-     *
-     * @param TestInfo
      */
-    "beforeTestSuccess": [TestInfo];
+    "onBeforeTestEnd": [TestResult];
 
 }
 

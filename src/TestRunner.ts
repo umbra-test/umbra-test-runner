@@ -8,7 +8,7 @@ import {DefaultTestRunnerConfig} from "./Config/DefaultTestRunnerConfig";
 import {ItOptions} from "./Config/ItOptions";
 import {EventCallback, SimpleEventEmitter} from "./EventEmitter/SimpleEventEmitter";
 import {QueueStack} from "./QueueStack";
-import {TestResults} from "./TestResults";
+import {TestResult} from "./TestResult";
 
 interface TestEntry extends TestInfo {
     type: "describe" | "it";
@@ -314,13 +314,13 @@ class TestRunner {
 
     private async evaluateTest(queue: TestQueue, entry: TestEntry): Promise<boolean> {
         if (entry.skip) {
-            const testResults: TestResults = {
+            const testResults: TestResult = {
                 result: "skipped",
                 testInfo: entry,
                 elapsedMs: 0
             };
 
-            this.eventEmitter.emit("onTestResult", testResults as TestResults);
+            this.eventEmitter.emit("onTestEnd", testResults as TestResult);
             return false;
         }
 
@@ -333,7 +333,7 @@ class TestRunner {
         this.currentTest = entry;
 
         try {
-            await this.executeTestCallback(entry, queue.describeTitleChain);
+            await this.executeTestCallback(entry);
             await this.evaluateQueueWithTimeout("afterEach");
         } finally {
             this.runResults.totalTests++;
@@ -343,29 +343,42 @@ class TestRunner {
         return true;
     }
 
-    private async executeTestCallback(entry: TestEntry, titleChain: string[]): Promise<void> {
+    private async executeTestCallback(entry: TestEntry): Promise<void> {
         const startTime = Date.now();
         const timeoutValue = entry.timeoutMs >= 0 ? entry.timeoutMs : this.getTimeoutValue("it");
 
-        const testResults: Partial<TestResults> = {
+        const testResults: Partial<TestResult> = {
             testInfo: entry
         };
 
         try {
             await this.timeoutPromisifier.wrap(this.asyncPromisifier.exec(entry.callback, "Test: " + entry.title), timeoutValue);
-            await this.eventEmitter.emitAndWaitForCompletion("beforeTestSuccess", entry);
-
-            this.runResults.totalSuccesses++;
             testResults.result = "success";
         } catch (error) {
             if (error instanceof TimeoutError) {
-                this.runResults.totalTimeouts++;
                 testResults.result = "timeout";
             } else {
-                this.runResults.totalFailures++;
                 testResults.result = "fail";
                 testResults.error = error;
             }
+        }
+
+        testResults.elapsedMs = Date.now() - startTime;
+
+        try {
+            // TODO: explicitly add support for returning a new testResult, rather than modifying it inline or throwing.
+            await this.eventEmitter.emitAndWaitForCompletion("onBeforeTestEnd", testResults as TestResult);
+        } catch (error) {
+            testResults.result = "fail";
+            testResults.error = error;
+        }
+
+        if (testResults.result === "success") {
+            this.runResults.totalSuccesses++;
+        } else if (testResults.result === "timeout") {
+            this.runResults.totalTimeouts++;
+        } else {
+            this.runResults.totalFailures++;
 
             // If we want to stop additional execution on the first fail, just cancel the rest of the run.
             if (this.config.stopOnFirstFail) {
@@ -373,9 +386,8 @@ class TestRunner {
             }
         }
 
-        testResults.elapsedMs = Date.now() - startTime;
-        this.runResults.testResults.push(testResults as TestResults);
-        this.eventEmitter.emit("onTestResult", testResults as TestResults);
+        this.runResults.testResults.push(testResults as TestResult);
+        this.eventEmitter.emit("onTestEnd", testResults as TestResult);
     }
 
     private evaluateQueueWithTimeout(type: QueueStackType): Promise<void> {

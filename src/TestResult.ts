@@ -3,7 +3,7 @@ import {TestInfo} from "./TestInfo";
 /**
  * Results from an individual test. This will be fired for each and every test, including those which have failed.
  */
-interface TestResults {
+interface TestResult {
 
     result: "success" | "fail" | "timeout" | "skipped";
 
@@ -23,4 +23,4 @@ interface TestResults {
     error?: Error;
 }
 
-export {TestResults};
+export {TestResult};

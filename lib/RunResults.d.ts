@@ -1,8 +1,8 @@
+import { TestResult } from "./TestResult";
 /**
  * Results from the end of the test run. These results only include the tests that have been evaluated; if `only` or
  * `cancel()` is used then the skipped tests are not included in the total test count.
  */
-import { TestResults } from "./TestResults";
 interface RunResults {
     /**
      * The total elapsed time for the test run.
@@ -27,6 +27,6 @@ interface RunResults {
     /**
      * A list of information for each and every test success.
      */
-    testResults: TestResults[];
+    testResults: TestResult[];
 }
 export { RunResults };
