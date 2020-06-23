@@ -9,7 +9,7 @@ const expect = chai.expect;
 
 interface TestCase {
     type: "it" | "it.only" | "it.skip" | "describe" | "describe.only" | "describe.skip" | "before" | "after" | "beforeEach" | "afterEach";
-    order: number | null;
+    order: number | number[] | null;
     times?: number;
     error?: Error;
     children?: TestCase[]
@@ -99,11 +99,14 @@ class TestRunnerForTestRunner {
             if (order === null) {
                 this.shouldNotBeCalledSpies.push(runnerSpy);
             } else {
-                this.callOrder[order] = {
-                    label: title,
-                    spy: runnerSpy,
-                    times: testCase.times || 1
-                };
+                const orderEntries = typeof order === "number" ? [order] : order;
+                for (const order of orderEntries) {
+                    this.callOrder[order] = {
+                        label: title,
+                        spy: runnerSpy,
+                        times: testCase.times ? testCase.times : orderEntries.length
+                    };
+                }
             }
 
             this.addTestRunnerTest(type, title, runnerSpy);

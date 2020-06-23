@@ -6,14 +6,26 @@ class QueueStack<T> {
     private queue: T[][] = [];
 
     /**
-     * Pushes the given element onto the end of the top stack, on the top queue.
+     * Pushes the given element onto the end of the top stack.
      * @param element
      */
-    pushOnTop(element: T): void {
+    pushOnTopStack(element: T): void {
         if (this.queue.length === 0) {
             this.queue.push([element]);
         } else {
             this.queue[0].push(element);
+        }
+    }
+
+    /**
+     * Pushes the given element onto the end of the bottom stack.
+     * @param element
+     */
+    pushOnBottomStack(element: T): void {
+        if (this.queue.length === 0) {
+            this.queue.push([element]);
+        } else {
+            this.queue[this.queue.length - 1].push(element);
         }
     }
 

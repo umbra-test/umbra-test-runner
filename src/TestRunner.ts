@@ -135,22 +135,22 @@ class TestRunner {
 
     before(execBlock: (done?: (result?: Error | any) => void) => Promise<Error | any> | any) {
         this.throwIfTestInProgress("before");
-        this.queueStacks["before"].pushOnTop(execBlock);
+        this.queueStacks["before"].pushOnBottomStack(execBlock);
     }
 
     beforeEach(execBlock: (done?: (result?: Error | any) => void) => Promise<Error | any> | any) {
         this.throwIfTestInProgress("beforeEach");
-        this.queueStacks["beforeEach"].pushOnTop(execBlock);
+        this.queueStacks["beforeEach"].pushOnBottomStack(execBlock);
     }
 
     after(execBlock: (done?: (result?: Error | any) => void) => Promise<Error | any> | any) {
         this.throwIfTestInProgress("after");
-        this.queueStacks["after"].pushOnTop(execBlock);
+        this.queueStacks["after"].pushOnTopStack(execBlock);
     }
 
     afterEach(execBlock: (done?: (result?: Error | any) => void) => Promise<Error | any> | any) {
         this.throwIfTestInProgress("afterEach");
-        this.queueStacks["afterEach"].pushOnTop(execBlock);
+        this.queueStacks["afterEach"].pushOnTopStack(execBlock);
     }
 
     /**
@@ -306,7 +306,11 @@ class TestRunner {
         await this.runNextTestQueue();
 
         for (const type of QueueStackTypes) {
-            this.queueStacks[type].shiftStack();
+            if (type === "before" || type === "beforeEach") {
+                this.queueStacks[type].popStack();
+            } else {
+                this.queueStacks[type].shiftStack();
+            }
         }
 
         return false;

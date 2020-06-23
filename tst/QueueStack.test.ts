@@ -19,7 +19,7 @@ describe("QueueStack", () => {
     describe("pushOnTop", () => {
         it("should push an element onto a new stack on a new queue, if the queueStack is empty", () => {
             const obj = {};
-            queueStack.pushOnTop(obj);
+            queueStack.pushOnTopStack(obj);
 
             const topStack = queueStack.popStack();
             expect(topStack).to.have.length(1);
@@ -30,7 +30,7 @@ describe("QueueStack", () => {
             queueStack.pushStack([]);
 
             const obj = {};
-            queueStack.pushOnTop(obj);
+            queueStack.pushOnTopStack(obj);
 
             const topStack = queueStack.popStack();
             expect(topStack).to.have.length(1);
@@ -41,7 +41,7 @@ describe("QueueStack", () => {
             queueStack.pushStack([{}, {}]);
 
             const obj = {};
-            queueStack.pushOnTop(obj);
+            queueStack.pushOnTopStack(obj);
 
             const topStack = queueStack.popStack();
             expect(topStack).to.have.length(3);
@@ -53,7 +53,7 @@ describe("QueueStack", () => {
             queueStack.pushStack([{}, {}]);
 
             const obj = {};
-            queueStack.pushOnTop(obj);
+            queueStack.pushOnTopStack(obj);
 
             const topStack = queueStack.shiftStack();
             expect(topStack).to.have.length(2);

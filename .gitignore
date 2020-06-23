@@ -3,3 +3,4 @@ lib/tests/
 coverage/*
 node_modules/*
 .idea/
+.umbra-cache/
