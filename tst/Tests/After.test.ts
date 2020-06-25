@@ -119,10 +119,10 @@ describe("after", () => {
         order: 0
     }, {
         type: "after",
-        order: 2
+        order: 1
     }, {
         type: "after",
-        order: 1
+        order: 2
     });
 
     runTests("should not run a after if there are no tests at it or its children's level", {
@@ -136,5 +136,4 @@ describe("after", () => {
         type: "it",
         order: 1
     });
-
 });

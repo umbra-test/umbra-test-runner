@@ -12,7 +12,7 @@ interface TestCase {
     order: number | number[] | null;
     times?: number;
     error?: Error;
-    children?: TestCase[]
+    children?: TestCase[];
 }
 
 interface CallOrderExpectation {
@@ -37,8 +37,8 @@ class TestRunnerForTestRunner {
         this.umbraOnly = umbraOnly;
     }
 
-    runTest(...testCases: TestCase[]): Promise<void> {
-        this.addTest(...testCases);
+    runTest(verbose: boolean, ...testCases: TestCase[]): Promise<void> {
+        this.addTest(verbose, ...testCases);
 
         return this.testRunnerInstance.run().then(this.validateCallOrder);
     }
@@ -72,7 +72,7 @@ class TestRunnerForTestRunner {
         }
     };
 
-    private addTest(...testCases: TestCase[]): void {
+    private addTest(verbose: boolean, ...testCases: TestCase[]): void {
         if (testCases.length === 0) {
             return;
         }
@@ -86,12 +86,15 @@ class TestRunnerForTestRunner {
             const order = testCase.order;
             const title = `${order}->${type}`;
             const runnerSpy: any = sinon.spy(() => {
+                if (verbose) {
+                    console.log(`-> ${title}`);
+                }
                 if (testCase.error) {
                     throw testCase.error;
                 }
                 if (testCase.children) {
                     for (const child of testCase.children) {
-                        this.addTest(child);
+                        this.addTest(verbose, child);
                     }
                 }
             });
@@ -130,9 +133,18 @@ class TestRunnerForTestRunner {
     }
 }
 
-const runTests = (title: string, ...testCases: TestCase[]) => {
+const runTestsVerbose = (title: string, only = false, ...testCases: TestCase[]) => {
     const runner = new TestRunnerForTestRunner();
-    it(title, () => runner.runTest(...testCases));
+    if (only) {
+        it.only(title, () => runner.runTest(true, ...testCases));
+    } else {
+        it(title, () => runner.runTest(true, ...testCases));
+    }
 };
 
-export {TestRunnerForTestRunner, runTests};
+const runTests = (title: string, ...testCases: TestCase[]) => {
+    const runner = new TestRunnerForTestRunner();
+    it(title, () => runner.runTest(false, ...testCases));
+};
+
+export {TestRunnerForTestRunner, runTests, runTestsVerbose};

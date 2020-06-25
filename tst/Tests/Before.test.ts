@@ -137,4 +137,36 @@ describe("before", () => {
         type: "it",
         order: 1
     });
+
+    runTests("should execute befores for the given level and any parents if they exist", {
+        type: "describe",
+        order: 0,
+        children: [
+            {
+                type: "before",
+                order: [2, 6]
+            },
+            {
+                type: "describe",
+                order: 1,
+                children: [{
+                    type: "before",
+                    order: 3
+                }, {
+                    type: "it",
+                    order: 4
+                }]
+            }, {
+                type: "describe",
+                order: 5,
+                children: [{
+                    type: "before",
+                    order: 7
+                }, {
+                    type: "it",
+                    order: 8
+                }]
+            }
+        ]
+    });
 });

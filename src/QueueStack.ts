@@ -7,6 +7,7 @@ class QueueStack<T> {
 
     /**
      * Pushes the given element onto the end of the top stack.
+     *
      * @param element
      */
     pushOnTopStack(element: T): void {
@@ -19,6 +20,7 @@ class QueueStack<T> {
 
     /**
      * Pushes the given element onto the end of the bottom stack.
+     *
      * @param element
      */
     pushOnBottomStack(element: T): void {
@@ -36,6 +38,15 @@ class QueueStack<T> {
      */
     pushStack(stack: T[]): void {
         this.queue.push(stack);
+    }
+
+    /**
+     * Pushes a new stack onto the start of the queue.
+     *
+     * @param stack
+     */
+    unshiftStack(stack: T[]): void {
+        this.queue.unshift(stack);
     }
 
     /**

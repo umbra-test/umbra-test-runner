@@ -299,7 +299,11 @@ class TestRunner {
         });
 
         for (const type of QueueStackTypes) {
-            this.queueStacks[type].pushStack([]);
+            if (type === "before" || type === "beforeEach") {
+                this.queueStacks[type].pushStack([]);
+            } else {
+                this.queueStacks[type].unshiftStack([]);
+            }
         }
 
         await this.asyncPromisifier.exec(entry.callback, "describe");
@@ -399,12 +403,7 @@ class TestRunner {
     }
 
     private evaluateQueue(type: QueueStackType): Promise<void> {
-        const queueStack = this.queueStacks[type];
-        if (type === "before" || type === "beforeEach") {
-            return queueStack.traverseLevelOrder((callback) => this.asyncPromisifier.exec(callback, type));
-        } else {
-            return queueStack.traverseInverseLevelOrder((callback) => this.asyncPromisifier.exec(callback, type));
-        }
+        return this.queueStacks[type].traverseLevelOrder((callback) => this.asyncPromisifier.exec(callback, type));
     }
 
     private getTimeoutValue<T extends keyof TimeoutConfig>(type: T): number {

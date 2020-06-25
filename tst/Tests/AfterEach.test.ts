@@ -33,14 +33,13 @@ describe("afterEach", () => {
 
     runTests("should run a afterEach once for every later sibling without a describe", {
         type: "afterEach",
-        order: 2,
-        times: 2
+        order: [1, 3],
     }, {
         type: "it",
         order: 0
     }, {
         type: "it",
-        order: 1
+        order: 2
     });
 
     runTests("should run a afterEach if its a later sibling to a test without a describe", {
@@ -56,11 +55,10 @@ describe("afterEach", () => {
         order: 0
     }, {
         type: "it",
-        order: 1
+        order: 2
     }, {
         type: "afterEach",
-        order: 2,
-        times: 2
+        order: [1, 3],
     });
 
     runTests("should run a afterEach if its in a describe has a single later test sibling", {
@@ -80,14 +78,13 @@ describe("afterEach", () => {
         order: 0,
         children: [{
             type: "afterEach",
-            order: 3,
-            times: 2
+            order: [2, 4]
         }, {
             type: "it",
             order: 1
         }, {
             type: "it",
-            order: 2
+            order: 3
         }]
     });
 
@@ -111,11 +108,10 @@ describe("afterEach", () => {
             order: 1
         }, {
             type: "it",
-            order: 2
+            order: 3
         }, {
             type: "afterEach",
-            order: 1,
-            times: 2
+            order: [2, 4],
         }]
     });
 
@@ -133,8 +129,7 @@ describe("afterEach", () => {
 
     runTests("should run a afterEach if its earlier and outside a describe which has a test", {
         type: "afterEach",
-        order: 3,
-        times: 2
+        order: [2, 4],
     }, {
         type: "describe",
         order: 0,
@@ -143,7 +138,7 @@ describe("afterEach", () => {
             order: 1
         }, {
             type: "it",
-            order: 2
+            order: 3
         }]
     });
 
@@ -167,12 +162,11 @@ describe("afterEach", () => {
             order: 1
         }, {
             type: "it",
-            order: 2
+            order: 3
         }]
     }, {
         type: "afterEach",
-        order: 3,
-        times: 2
+        order: [2, 4],
     });
 
     runTests("should run a afterEach if there's one both outside and inside a describe with a test", {
@@ -195,13 +189,13 @@ describe("afterEach", () => {
         order: 0
     }, {
         type: "afterEach",
-        order: 2
+        order: 1
     }, {
         type: "afterEach",
-        order: 1
+        order: 2
     });
 
-    runTests("should handle afters and afterEaches with after being priorited after afterEach, per level", {
+    runTests("should handle afters and afterEaches with after being prioritized after afterEach, per level", {
         type: "describe",
         order: 0,
         children: [{
@@ -209,22 +203,20 @@ describe("afterEach", () => {
             order: 1
         }, {
             type: "it",
-            order: 2
+            order: 4
         }, {
             type: "afterEach",
-            order: 3,
-            times: 2
+            order: [2, 5]
         }, {
             type: "after",
-            order: 5
+            order: 7
         }]
     }, {
         type: "afterEach",
-        order: 4,
-        times: 2
+        order: [3, 6],
     }, {
         type: "after",
-        order: 6
+        order: 8
     });
 
     runTests("should not run an afterEach if there are no tests at it or its children's level", {
@@ -239,4 +231,35 @@ describe("afterEach", () => {
         order: 1
     });
 
+    runTests("should execute afterEaches for the given level and any parents if they exist", {
+        type: "describe",
+        order: 0,
+        children: [
+            {
+                type: "afterEach",
+                order: [4, 8]
+            },
+            {
+                type: "describe",
+                order: 1,
+                children: [{
+                    type: "afterEach",
+                    order: 3
+                }, {
+                    type: "it",
+                    order: 2
+                }]
+            }, {
+                type: "describe",
+                order: 5,
+                children: [{
+                    type: "afterEach",
+                    order: 7
+                }, {
+                    type: "it",
+                    order: 6
+                }]
+            }
+        ]
+    });
 });
